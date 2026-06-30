@@ -285,6 +285,13 @@
         </button>
 
         <div class="nav-divider"></div>
+        <p class="nav-label">Audit & Compliance</p>
+        <button @click="currentTab = 'checklists'" :class="currentTab === 'checklists' ? 'active' : ''" class="nav-item">
+          <i class="nav-icon fas fa-clipboard-check"></i><span>Checklist Perangkat</span>
+          <span x-show="checklists.length" class="ml-auto badge badge-green" style="font-size:9px;padding:2px 7px;" x-text="checklists.length"></span>
+        </button>
+
+        <div class="nav-divider"></div>
         <p class="nav-label">Master Data</p>
         <button @click="currentTab = 'm-location'" :class="currentTab === 'm-location' ? 'active' : ''" class="nav-item">
           <i class="nav-icon fas fa-location-dot"></i><span>Locations</span>
@@ -1112,6 +1119,62 @@
 
 
           <!-- ══════════════════════════════════════
+               CHECKLIST PERANGKAT IT (AUDIT FORM)
+          ══════════════════════════════════════ -->
+          <div x-show="currentTab === 'checklists'" class="space-y-4">
+            <div class="page-header">
+              <div>
+                <h2 class="page-title">Checklist Perangkat IT</h2>
+                <p class="page-subtitle">Form audit & inspeksi rutin perangkat infrastruktur per site</p>
+              </div>
+              <button @click="openChecklistModal()" class="btn" style="background:#15803d;color:#fff;box-shadow:0 4px 14px rgba(21,128,61,0.22);">
+                <i class="fas fa-plus"></i><span>Buat Form Checklist</span>
+              </button>
+            </div>
+
+            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="checklistSearch" placeholder="Cari judul, site, kode form..." class="form-input"></div></div>
+
+            <!-- Card grid (tiap form = 1 card karena isinya banyak baris) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <template x-for="chk in filteredChecklists" :key="chk.ID">
+                <div class="card p-5 hover:shadow-card-md transition">
+                  <div class="flex items-start justify-between gap-2 mb-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:#DCFCE7;">
+                      <i class="fas fa-clipboard-check text-[15px]" style="color:#15803d;"></i>
+                    </div>
+                    <span :class="chk.Status==='ACTIVE'?'badge-green':'badge-gray'" class="badge" x-text="chk.Status"></span>
+                  </div>
+                  <p class="font-mono font-black text-[11px]" style="color:#15803d;" x-text="chk['Form Code']"></p>
+                  <h3 class="text-sm font-black text-slate2-800 mt-1 leading-tight" x-text="chk.Judul"></h3>
+                  <div class="flex items-center gap-2 mt-2.5 text-[11px] text-slate2-500">
+                    <i class="fas fa-location-dot text-slate2-400"></i><span class="font-bold" x-text="chk.Site"></span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1.5 text-[11px] text-slate2-500">
+                    <i class="fas fa-calendar text-slate2-400"></i><span x-text="(chk.Tanggal||'').substring(0,10)"></span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1.5 text-[11px] text-slate2-500">
+                    <i class="fas fa-list-check text-slate2-400"></i><span x-text="(chk.Items_JSON||[]).length + ' parameter diperiksa'"></span>
+                  </div>
+                  <!-- Mini status summary -->
+                  <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate2-100">
+                    <span class="badge badge-green text-[10px]" x-text="countChecklistStatus(chk,'Baik') + ' Baik'"></span>
+                    <span class="badge badge-red text-[10px]" x-text="countChecklistStatus(chk,'Tidak Baik') + ' Issue'"></span>
+                  </div>
+                  <div class="flex justify-end gap-2 mt-4">
+                    <button @click="openChecklistModal(chk)" class="btn btn-ghost btn-sm flex-1 justify-center">Edit</button>
+                    <button @click="openDeleteConfirmation('checklist_forms',chk.ID,chk.Judul)" class="btn btn-danger btn-sm flex-1 justify-center">Hapus</button>
+                  </div>
+                </div>
+              </template>
+              <div x-show="filteredChecklists.length===0" class="col-span-full">
+                <div class="card"><div class="empty-state"><div class="empty-icon" style="background:#DCFCE7;color:#15803d;"><i class="fas fa-clipboard-check"></i></div><p class="text-sm font-bold text-slate2-400">Belum ada form checklist</p><p class="text-xs text-slate2-400">Klik "Buat Form Checklist" untuk mulai audit</p></div></div>
+              </div>
+            </div>
+          </div>
+          <!-- ═══ END CHECKLISTS ═══ -->
+
+
+          <!-- ══════════════════════════════════════
                MASTER USERS
           ══════════════════════════════════════ -->
           <div x-show="currentTab === 'm-users'" class="space-y-4">
@@ -1208,6 +1271,7 @@
         <button @click="currentTab='kpi-projects';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-rocket"></i><span>Quality Delivery</span></button>
         <button @click="currentTab='kpi-trainings';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-chalkboard-user"></i><span>Training Record</span></button>
         <button @click="currentTab='licenses';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-id-card"></i><span>Office Licenses</span></button>
+        <button @click="currentTab='checklists';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-clipboard-check"></i><span>Checklist Perangkat</span></button>
         <div class="nav-divider"></div>
         <button @click="currentTab='m-location';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-location-dot"></i><span>Master Lokasi</span></button>
         <button @click="currentTab='m-category';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-tags"></i><span>Master Kategori</span></button>
@@ -1814,6 +1878,127 @@
     </div>
   </div>
 
+  <!-- ═══ CHECKLIST FORM MODAL (Full Screen) ═══ -->
+  <div x-show="showChecklistModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-royal-950/85 backdrop-blur-sm" x-transition.opacity>
+    <div class="bg-slate2-50 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl relative flex flex-col" style="height:92vh;">
+      <div class="p-5 border-b border-slate2-200 flex justify-between items-center bg-white shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#DCFCE7;"><i class="fas fa-clipboard-check" style="color:#15803d;"></i></div>
+          <div>
+            <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Audit & Compliance</p>
+            <h3 class="text-xs font-black text-slate2-800" x-text="formChecklist.id?'Edit Form Checklist':'Buat Form Checklist Baru'"></h3>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button @click="submitChecklistForm()" class="btn" style="background:#15803d;color:#fff;"><i class="fas fa-save mr-1.5"></i>Simpan Form</button>
+          <button @click="showChecklistModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-5">
+
+        <!-- Form Header Info -->
+        <div class="card p-5">
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-3 pb-2 border-b border-slate2-100">Informasi Form</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="form-label">ID Form <span class="text-xs font-normal text-slate2-400 normal-case tracking-normal">(auto-generate)</span></label>
+              <input type="text" :value="formChecklist.id ? formChecklist.formCode : 'AKR-XXX-NT-### (otomatis saat disimpan)'" disabled class="form-input font-mono bg-slate2-100 text-slate2-400">
+            </div>
+            <div>
+              <label class="form-label">Judul Form <span class="text-red-500">*</span></label>
+              <input type="text" x-model="formChecklist.judul" required placeholder="FORM CHECKLIST PERANGKAT IT" class="form-input font-bold uppercase">
+            </div>
+            <div>
+              <label class="form-label">Tanggal <span class="text-red-500">*</span></label>
+              <input type="date" x-model="formChecklist.tanggal" required class="form-input">
+            </div>
+          </div>
+          <div class="mt-4">
+            <label class="form-label">Site <span class="text-red-500">*</span> <span class="text-xs font-normal text-slate2-400 normal-case tracking-normal">(dari Master Lokasi)</span></label>
+            <select x-model="formChecklist.site" required class="form-input cursor-pointer max-w-sm">
+              <option value="">-- Pilih Site / Lokasi --</option>
+              <template x-for="l in masterData.locations" :key="l.ID">
+                <option :value="l['Location Name']" x-text="l['Location Name']"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+
+        <!-- Checklist Items Table -->
+        <div class="card overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate2-100 flex items-center justify-between">
+            <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Parameter Pemeriksaan</p>
+            <button type="button" @click="addChecklistCategory()" class="btn btn-sm" style="background:#15803d;color:#fff;"><i class="fas fa-folder-plus mr-1"></i>Tambah Kategori</button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left" style="font-size:11px;">
+              <thead>
+                <tr style="background:#2B6CB0;">
+                  <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide" style="width:160px;">Kategori Pemeriksaan</th>
+                  <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide" style="width:120px;">Parameter</th>
+                  <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide" style="width:140px;">Standar Limit</th>
+                  <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide">Potensi Resiko</th>
+                  <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide text-center" style="width:90px;">Frekuensi</th>
+                  <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide text-center" style="width:110px;">Status (Baik / Tdk Baik)</th>
+                  <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide" style="width:160px;">Keterangan</th>
+                  <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide text-center" style="width:50px;">—</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="(cat, catIdx) in formChecklist.items" :key="catIdx">
+                  <template x-for="(row, rowIdx) in cat.rows" :key="rowIdx">
+                    <tr class="border-b border-slate2-100 hover:bg-royal-50/30 group">
+                      <!-- Kategori cell: only show input on first row of category, with rowspan style via border trick -->
+                      <td class="px-3 py-2 align-top" :class="rowIdx===0?'':'border-t-0'">
+                        <template x-if="rowIdx===0">
+                          <div class="space-y-1.5">
+                            <textarea x-model="cat.categoryName" rows="2" placeholder="Nama Kategori..." class="w-full bg-royal-50 border border-royal-100 rounded-lg px-2 py-1.5 text-[11px] font-black uppercase focus:outline-none focus:border-royal-400 resize-none" style="color:#1A3A66;"></textarea>
+                            <button type="button" @click="addChecklistRow(catIdx)" class="text-[9px] font-bold flex items-center gap-1 hover:underline" style="color:#15803d;"><i class="fas fa-plus"></i>Tambah Parameter</button>
+                            <button type="button" x-show="formChecklist.items.length>1" @click="removeChecklistCategory(catIdx)" class="text-[9px] font-bold text-red-400 hover:text-red-600 flex items-center gap-1"><i class="fas fa-trash"></i>Hapus Kategori</button>
+                          </div>
+                        </template>
+                      </td>
+                      <td class="px-3 py-2 align-top"><textarea x-model="row.parameter" rows="2" placeholder="Parameter..." class="w-full bg-transparent text-[11px] font-bold focus:outline-none resize-none border border-transparent hover:border-slate2-200 rounded px-1"></textarea></td>
+                      <td class="px-3 py-2 align-top"><textarea x-model="row.standarLimit" rows="2" placeholder="Standar limit..." class="w-full bg-transparent text-[11px] focus:outline-none resize-none border border-transparent hover:border-slate2-200 rounded px-1"></textarea></td>
+                      <td class="px-3 py-2 align-top"><textarea x-model="row.potensiResiko" rows="2" placeholder="Potensi resiko jika tidak sesuai standar..." class="w-full bg-transparent text-[11px] focus:outline-none resize-none border border-transparent hover:border-slate2-200 rounded px-1" style="color:#1d4ed8;"></textarea></td>
+                      <td class="px-3 py-2 align-top text-center">
+                        <select x-model="row.frekuensi" class="w-full bg-transparent text-[10px] font-bold uppercase focus:outline-none border border-transparent hover:border-slate2-200 rounded px-1 cursor-pointer text-center">
+                          <option value="HARIAN">HARIAN</option>
+                          <option value="MINGGUAN">MINGGUAN</option>
+                          <option value="BULANAN">BULANAN</option>
+                          <option value="TAHUNAN">TAHUNAN</option>
+                        </select>
+                      </td>
+                      <td class="px-3 py-2 align-top text-center">
+                        <select x-model="row.statusBaik" class="w-full text-[10px] font-black uppercase focus:outline-none rounded-lg px-1 py-1 cursor-pointer text-center border" :class="row.statusBaik==='Baik' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (row.statusBaik==='Tidak Baik' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate2-50 text-slate2-400 border-slate2-200')">
+                          <option value="">— Pilih —</option>
+                          <option value="Baik">Baik</option>
+                          <option value="Tidak Baik">Tidak Baik</option>
+                        </select>
+                      </td>
+                      <td class="px-3 py-2 align-top"><textarea x-model="row.keterangan" rows="2" placeholder="Keterangan..." class="w-full bg-transparent text-[11px] focus:outline-none resize-none border border-transparent hover:border-slate2-200 rounded px-1"></textarea></td>
+                      <td class="px-3 py-2 align-top text-center">
+                        <button type="button" x-show="cat.rows.length>1" @click="removeChecklistRow(catIdx,rowIdx)" class="w-6 h-6 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center opacity-0 group-hover:opacity-100"><i class="fas fa-times text-[10px]"></i></button>
+                      </td>
+                    </tr>
+                  </template>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <div x-show="formChecklist.items.length===0" class="p-8 text-center">
+            <p class="text-xs text-slate2-400 mb-3">Belum ada kategori pemeriksaan.</p>
+            <button type="button" @click="addChecklistCategory()" class="btn btn-primary btn-sm"><i class="fas fa-plus mr-1"></i>Tambah Kategori Pertama</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Delete Confirmation Modal -->
   <div x-show="showDeleteModal" x-cloak class="modal-backdrop" style="z-index:65;" x-transition.opacity>
     <div class="modal-box max-w-xs" @click.outside="showDeleteModal=false">
@@ -1883,7 +2068,8 @@
           'm-category': 'Master Data · Kategori',
           'm-items': 'Master Data · Item & Aset',
           'm-users':  'Master Data · Users',
-          'licenses': 'Office 2024 · License Manager'
+          'licenses': 'Office 2024 · License Manager',
+          'checklists': 'Audit · Checklist Perangkat IT'
         },
 
         // Modal states
@@ -1894,6 +2080,7 @@
         showItemModal: false, showPasswordModal: false, showPwInForm: false,
         showLicenseModal: false, showUserModal: false,
         showProdKey: false, showUniqueKey: false,
+        showChecklistModal: false,
 
         // Viewer
         viewerUrl: '', viewerTitle: '', viewerType: 'image',
@@ -1901,6 +2088,7 @@
         // Data arrays
         incidents: [], vlans: [], racks: [], kpiProjects: [], kpiTrainings: [],
         wiki: [], masterItems: [], passwords: [], masterUsers: [], licenses: [],
+        checklists: [],
         masterData: { locations: [], categories: [] },
 
         // Search / filter states
@@ -1913,6 +2101,7 @@
         licSearch: '', licFilter: 'all', licPage: 1, licPerPage: 15,
         licRevealKey: null, licRevealUKey: null,
         userSearch: '',
+        checklistSearch: '',
 
         // Form models
         formCreate: { id:null, date:'', isToday:true, location:'', category:'', description:'', photoBefore:'' },
@@ -1928,6 +2117,7 @@
         formPassword: { id:null, appName:'', url:'', username:'', password:'', category:'', location:'', notes:'', isActive:true },
         formLicense: { id:null, partNumber:'', productName:'', productNameManual:'', qty:1, productKey:'', uniqueKey:'', activationDate:'', hostname:'', user:'', itemId:'', laptopBrandType:'', akunAdmin:'' },
         formUser: { id:null, fullName:'', department:'', email:'', phone:'' },
+        formChecklist: { id:null, formCode:'', judul:'', tanggal:'', site:'', items:[] },
 
         deleteQueue: { sheet:'', id:'', name:'' },
         toasts: [],
@@ -1974,6 +2164,7 @@
                 this.passwords    = res.passwords    || [];
                 this.masterUsers  = res.masterUsers  || [];
                 this.licenses     = res.licenses     || [];
+                this.checklists   = res.checklists   || [];
               } else {
                 this.showToast('Error server: ' + (res.message || 'Unknown error'), 'error');
               }
@@ -2101,6 +2292,88 @@
         submitUserForm() {
           if (!this.formUser.fullName.trim()) return alert('Nama Lengkap wajib diisi!');
           this._submit('saveMasterUserRow', this.formUser, 'showUserModal');
+        },
+
+        // ── Checklist Form (Audit Perangkat IT) ──
+        defaultChecklistTemplate() {
+          return [
+            {
+              categoryName: 'PEMERIKSAAN LINGKUNGAN RUANG SERVER',
+              rows: [
+                { parameter:'Temperatur Ruang', standarLimit:'18°C - 27°C', potensiResiko:'Risiko overheating jika suhu terlalu tinggi, atau kerusakan komponen jika terlalu dingin.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Kelembapan', standarLimit:'40% - 60%', potensiResiko:'Risiko kondensasi jika kelembapan terlalu tinggi, atau risiko listrik statis jika kelembapan terlalu rendah.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Ventilasi', standarLimit:'Sistem AC & ventilasi bekerja dengan baik', potensiResiko:'Risiko panas berlebih atau kerusakan perangkat karena sistem pendingin gagal.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Kebersihan', standarLimit:'Bebas debu, kotoran dan bahan inflamable', potensiResiko:'Risiko masuknya debu atau kotoran yang bisa merusak komponen perangkat keras.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Keamanan', standarLimit:'Terkunci', potensiResiko:'Risiko keamanan fisik terhadap pencurian atau sabotase.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Kebersihan Kabel', standarLimit:'Rapi dan tidak ada yg terkelupas', potensiResiko:'Risiko korsleting atau gangguan operasional karena kabel yang kusut atau rusak.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' }
+              ]
+            },
+            {
+              categoryName: 'PEMERIKSAAN SERVER DAN PERANGKAT KERAS',
+              rows: [
+                { parameter:'Status Power Supply', standarLimit:'Pastikan perangkat menyala', potensiResiko:'Risiko mati mendadak atau kerusakan perangkat karena suplai daya tidak stabil.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'UPS', standarLimit:'Baterai kondisi baik', potensiResiko:'Risiko kegagalan server jika terjadi pemadaman listrik tanpa UPS yang berfungsi baik.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Perangkat Jaringan', standarLimit:'Tidak overheat, port berfungsi dengan baik', potensiResiko:'Risiko downtime jaringan jika perangkat seperti router atau switch gagal berfungsi.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Kondisi Fisik Server', standarLimit:'Lubang ventilasi tidak tersumbat, casing tidak rusak', potensiResiko:'Risiko kerusakan akibat kondisi fisik server yang tidak terjaga.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Status LED Server', standarLimit:'Pastikan tidak ada LED yg menunjukkan masalah', potensiResiko:'Risiko mengabaikan masalah perangkat jika lampu indikator bermasalah tidak ditangani.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' }
+              ]
+            },
+            {
+              categoryName: 'PEMERIKSAAN KONEKSI JARINGAN',
+              rows: [
+                { parameter:'Wifi / Koneksi Ethernet', standarLimit:'Cek ping, port konektor, kabel', potensiResiko:'Risiko koneksi terputus atau lambat jika kabel ethernet rusak atau port tidak berfungsi.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Bandwith Utilization', standarLimit:'Pantau penggunaan BW, pastikan tidak ada bootleneck', potensiResiko:'Risiko bottleneck jika penggunaan bandwidth melebihi kapasitas jaringan.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Kecepatan Koneksi', standarLimit:'Pastikan kecepatan sesuai dengan layanan', potensiResiko:'Risiko performa aplikasi atau layanan menurun jika koneksi tidak cukup cepat.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' }
+              ]
+            },
+            {
+              categoryName: 'PEMERIKSAAN POWER DAN BACKUP POWER',
+              rows: [
+                { parameter:'Stabilitas Sumber Daya', standarLimit:'Pastikan tidak ada fluktuasi tegangan', potensiResiko:'Risiko kerusakan perangkat karena lonjakan atau penurunan tegangan.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'Kabel Listrik', standarLimit:'Kabel listrik aman, tidak panas dan tidak ada tanda kerusakan', potensiResiko:'Risiko kebakaran atau malfungsi perangkat karena kabel listrik yang rusak.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+                { parameter:'UPS Backup Testing', standarLimit:'Pastikan dapat membackup apabila ada pemadaman', potensiResiko:'Risiko kejutan listrik atau kerusakan perangkat karena grounding yang tidak benar.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' }
+              ]
+            }
+          ];
+        },
+        emptyChecklistCategory() {
+          return { categoryName:'', rows: [this.emptyChecklistRow()] };
+        },
+        emptyChecklistRow() {
+          return { parameter:'', standarLimit:'', potensiResiko:'', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' };
+        },
+        openChecklistModal(item=null) {
+          if (item) {
+            this.formChecklist = {
+              id: item.ID,
+              formCode: item['Form Code'] || '',
+              judul: item.Judul || '',
+              tanggal: (item.Tanggal||'').substring(0,10),
+              site: item.Site || '',
+              items: JSON.parse(JSON.stringify(item.Items_JSON || []))
+            };
+          } else {
+            const today = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+            this.formChecklist = { id:null, formCode:'', judul:'FORM CHECKLIST PERANGKAT IT', tanggal:today(), site:'', items: this.defaultChecklistTemplate() };
+          }
+          this.showChecklistModal = true;
+        },
+        addChecklistCategory() { this.formChecklist.items.push(this.emptyChecklistCategory()); },
+        removeChecklistCategory(catIdx) { this.formChecklist.items.splice(catIdx,1); },
+        addChecklistRow(catIdx) { this.formChecklist.items[catIdx].rows.push(this.emptyChecklistRow()); },
+        removeChecklistRow(catIdx, rowIdx) { this.formChecklist.items[catIdx].rows.splice(rowIdx,1); },
+        countChecklistStatus(chk, statusVal) {
+          let count = 0;
+          (chk.Items_JSON || []).forEach(cat => {
+            (cat.rows || []).forEach(row => { if (row.statusBaik === statusVal) count++; });
+          });
+          return count;
+        },
+        submitChecklistForm() {
+          if (!this.formChecklist.judul.trim()) return alert('Judul Form wajib diisi!');
+          if (!this.formChecklist.site.trim()) return alert('Site wajib dipilih!');
+          if (this.formChecklist.items.length === 0) return alert('Tambahkan minimal 1 kategori pemeriksaan!');
+          this._submit('saveChecklistRow', this.formChecklist, 'showChecklistModal');
         },
 
         getDeviceIcon(type) {
@@ -2233,6 +2506,19 @@
               String(u['Full Name'] || '').toLowerCase().includes(q) ||
               String(u.Department || '').toLowerCase().includes(q) ||
               String(u.Email || '').toLowerCase().includes(q)
+            );
+          }
+          return d.sort((a,b) => String(b.ID).localeCompare(String(a.ID)));
+        },
+
+        get filteredChecklists() {
+          let d = [...this.checklists];
+          if (this.checklistSearch) {
+            const q = this.checklistSearch.toLowerCase().trim();
+            d = d.filter(c =>
+              String(c.Judul || '').toLowerCase().includes(q) ||
+              String(c.Site || '').toLowerCase().includes(q) ||
+              String(c['Form Code'] || '').toLowerCase().includes(q)
             );
           }
           return d.sort((a,b) => String(b.ID).localeCompare(String(a.ID)));

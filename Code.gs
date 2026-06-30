@@ -15,7 +15,8 @@ const SHEETS = {
   MASTER_ITEMS:  "master_items",
   PASSWORDS:     "passwords",
   MASTER_USERS:  "master_users",       // NEW
-  LICENSES:      "office_licenses"     // NEW
+  LICENSES:      "office_licenses",    // NEW
+  CHECKLISTS:    "checklist_forms"     // NEW
 };
 
 /**
@@ -57,6 +58,12 @@ function setupDatabase() {
       "Unique Key","Tanggal Aktivasi","Hostname","User",
       "Item ID","Laptop Brand Type","Akun Admin","Status","Timestamp"
     ], "#1d4ed8");
+
+    // NEW: Checklist Forms (AKR-LOC-NT pattern - Form Checklist Perangkat IT)
+    createSheetIfNotExist(SHEETS.CHECKLISTS, [
+      "ID","Form Code","Judul","Tanggal","Site",
+      "Items_JSON","Status","Timestamp"
+    ], "#15803d");
 
     // Auto-Patching untuk Modul WIKI (Menambah Kolom PDF_Attachment tanpa menghapus sheet)
     let wikiSheet = ss.getSheetByName(SHEETS.WIKI);
@@ -145,7 +152,8 @@ function getInitialData() {
       masterItems:  getSheetData(SHEETS.MASTER_ITEMS),
       passwords:    getSheetData(SHEETS.PASSWORDS),
       masterUsers:  getSheetData(SHEETS.MASTER_USERS),   // NEW
-      licenses:     getSheetData(SHEETS.LICENSES)         // NEW
+      licenses:     getSheetData(SHEETS.LICENSES),        // NEW
+      checklists:   getSheetData(SHEETS.CHECKLISTS)       // NEW
     };
   } catch (error) { return { success: false, message: error.toString() }; }
 }
@@ -542,6 +550,80 @@ function saveLicenseRow(data) {
         new Date()
       ]);
       return { success: true, message: `License '${data.productName}' (${nextId}) berhasil didaftarkan.` };
+    }
+  } catch (error) { return { success: false, message: error.toString() }; } finally { lock.releaseLock(); }
+}
+
+// ================= CHECKLIST FORM ENGINE (NEW) =================
+/**
+ * ID Form generator: AKR-LOC-NT-001 pattern
+ *  AKR = Audit Checklist (fixed prefix)
+ *  LOC = singkatan lokasi/site (3 huruf pertama, diambil dari site, di-uppercase)
+ *  NT  = singkatan kategori dokumen (fixed: "NT" = Network/Network Tools checklist)
+ *  001 = nomor urut sequential per site, auto-increment
+ */
+function generateChecklistFormCode(site) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.CHECKLISTS);
+  const rows = sheet.getDataRange().getValues();
+  const siteCode = (site || "GEN").replace(/[^A-Za-z]/g, '').substring(0, 3).toUpperCase() || "GEN";
+  let maxSeq = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const formCode = rows[i][1]; // "Form Code" column
+    if (formCode && formCode.toString().includes('-' + siteCode + '-NT-')) {
+      const parts = formCode.toString().split('-');
+      const seqStr = parts[parts.length - 1];
+      const seqNum = parseInt(seqStr, 10);
+      if (!isNaN(seqNum) && seqNum > maxSeq) maxSeq = seqNum;
+    }
+  }
+  const nextSeq = String(maxSeq + 1).padStart(3, '0');
+  return `AKR-${siteCode}-NT-${nextSeq}`;
+}
+
+function saveChecklistRow(data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.CHECKLISTS);
+    if (!sheet) return { success: false, message: "Sheet checklist_forms tidak ditemukan. Jalankan setupDatabase()." };
+
+    const rows = sheet.getDataRange().getValues();
+    const isEdit = data.id !== null && data.id !== undefined && data.id !== '';
+    const itemsStr = JSON.stringify(data.items || []);
+
+    if (isEdit) {
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][0] === data.id) {
+          const rIdx = i + 1;
+          sheet.getRange(rIdx, 3).setValue(data.judul || "");
+          sheet.getRange(rIdx, 4).setValue(data.tanggal ? new Date(data.tanggal) : new Date());
+          sheet.getRange(rIdx, 5).setValue(data.site || "");
+          sheet.getRange(rIdx, 6).setValue(itemsStr);
+          return { success: true, message: `Form Checklist '${data.judul}' berhasil diperbarui.` };
+        }
+      }
+      return { success: false, message: "ID Checklist tidak ditemukan." };
+    } else {
+      let nextId = "CHK-0001";
+      if (rows.length > 1) {
+        const lastId = rows[rows.length-1][0];
+        if (lastId && lastId.toString().includes("CHK-")) {
+          nextId = "CHK-" + String(parseInt(lastId.split("-")[1], 10) + 1).padStart(4, '0');
+        }
+      }
+      const formCode = generateChecklistFormCode(data.site);
+      sheet.appendRow([
+        nextId,
+        formCode,
+        data.judul   || "",
+        data.tanggal ? new Date(data.tanggal) : new Date(),
+        data.site    || "",
+        itemsStr,
+        "ACTIVE",
+        new Date()
+      ]);
+      return { success: true, message: `Form Checklist '${formCode}' berhasil dibuat.`, formCode: formCode };
     }
   } catch (error) { return { success: false, message: error.toString() }; } finally { lock.releaseLock(); }
 }

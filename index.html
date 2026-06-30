@@ -548,14 +548,14 @@
             <div class="card p-4 flex gap-3">
               <div class="search-wrap flex-1 max-w-sm">
                 <i class="fas fa-search"></i>
-                <input type="text" x-model="rackSearch" placeholder="Cari rack..." class="form-input">
+                <input type="text" x-model="rackSearch" @input="rackPage=1" placeholder="Cari rack..." class="form-input">
               </div>
             </div>
             <div class="card overflow-hidden">
               <table class="data-table">
                 <thead><tr><th>ID</th><th>Nama Rack</th><th>Lokasi</th><th class="text-center">Kapasitas</th><th class="text-right">Aksi</th></tr></thead>
                 <tbody>
-                  <template x-for="r in filteredRacks" :key="r.ID">
+                  <template x-for="r in paginatedRacks" :key="r.ID">
                     <tr>
                       <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="r.ID"></span></td>
                       <td>
@@ -574,8 +574,21 @@
                       </td>
                     </tr>
                   </template>
+                  <tr x-show="filteredRacks.length===0"><td colspan="5"><div class="empty-state"><div class="empty-icon"><i class="fas fa-server"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada rack ditemukan</p></div></td></tr>
                 </tbody>
               </table>
+              <div x-show="rackTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+                <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="rackPage"></span> dari <span class="font-bold text-slate2-700" x-text="rackTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredRacks.length"></span> rack</p>
+                <div class="flex items-center gap-1">
+                  <button @click="rackPage=1" :disabled="rackPage===1" class="btn btn-ghost btn-icon-sm" :class="rackPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+                  <button @click="rackPage--" :disabled="rackPage===1" class="btn btn-ghost btn-icon-sm" :class="rackPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+                  <template x-for="p in Array.from({length:rackTotalPages},(_,i)=>i+1).filter(p=>p===1||p===rackTotalPages||Math.abs(p-rackPage)<=1)" :key="p">
+                    <button @click="rackPage=p" :class="p===rackPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+                  </template>
+                  <button @click="rackPage++" :disabled="rackPage===rackTotalPages" class="btn btn-ghost btn-icon-sm" :class="rackPage===rackTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+                  <button @click="rackPage=rackTotalPages" :disabled="rackPage===rackTotalPages" class="btn btn-ghost btn-icon-sm" :class="rackPage===rackTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -593,12 +606,12 @@
                 <i class="fas fa-network-wired"></i><span>Deploy VLAN</span>
               </button>
             </div>
-            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="vlanSearch" placeholder="Cari IP / Subnet / Switch..." class="form-input"></div></div>
+            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="vlanSearch" @input="vlanPage=1" placeholder="Cari IP / Subnet / Switch..." class="form-input"></div></div>
             <div class="card overflow-hidden">
               <table class="data-table">
                 <thead><tr><th>ID</th><th>VLAN Info</th><th>Network & Gateway</th><th>Switch Target</th><th>Lokasi</th><th class="text-right">Aksi</th></tr></thead>
                 <tbody>
-                  <template x-for="v in filteredVlans" :key="v.ID">
+                  <template x-for="v in paginatedVlans" :key="v.ID">
                     <tr>
                       <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="v.ID"></span></td>
                       <td>
@@ -616,8 +629,21 @@
                       </td>
                     </tr>
                   </template>
+                  <tr x-show="filteredVlans.length===0"><td colspan="6"><div class="empty-state"><div class="empty-icon"><i class="fas fa-network-wired"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada VLAN ditemukan</p></div></td></tr>
                 </tbody>
               </table>
+              <div x-show="vlanTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+                <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="vlanPage"></span> dari <span class="font-bold text-slate2-700" x-text="vlanTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredVlans.length"></span> VLAN</p>
+                <div class="flex items-center gap-1">
+                  <button @click="vlanPage=1" :disabled="vlanPage===1" class="btn btn-ghost btn-icon-sm" :class="vlanPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+                  <button @click="vlanPage--" :disabled="vlanPage===1" class="btn btn-ghost btn-icon-sm" :class="vlanPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+                  <template x-for="p in Array.from({length:vlanTotalPages},(_,i)=>i+1).filter(p=>p===1||p===vlanTotalPages||Math.abs(p-vlanPage)<=1)" :key="p">
+                    <button @click="vlanPage=p" :class="p===vlanPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+                  </template>
+                  <button @click="vlanPage++" :disabled="vlanPage===vlanTotalPages" class="btn btn-ghost btn-icon-sm" :class="vlanPage===vlanTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+                  <button @click="vlanPage=vlanTotalPages" :disabled="vlanPage===vlanTotalPages" class="btn btn-ghost btn-icon-sm" :class="vlanPage===vlanTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -635,12 +661,12 @@
                 <i class="fas fa-plus"></i><span>Record Project</span>
               </button>
             </div>
-            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="kpiProjSearch" placeholder="Cari KPI Project..." class="form-input"></div></div>
+            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="kpiProjSearch" @input="kpiProjPage=1" placeholder="Cari KPI Project..." class="form-input"></div></div>
             <div class="card overflow-hidden">
               <table class="data-table">
                 <thead><tr><th>ID</th><th>Tanggal</th><th>Nama Project</th><th>Lokasi</th><th class="text-center">Media</th><th class="text-right">Aksi</th></tr></thead>
                 <tbody>
-                  <template x-for="kp in filteredKpiProjects" :key="kp.ID">
+                  <template x-for="kp in paginatedKpiProjects" :key="kp.ID">
                     <tr>
                       <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="kp.ID"></span></td>
                       <td class="text-slate2-400 text-[11px]" x-text="kp.Tanggal"></td>
@@ -652,8 +678,21 @@
                       <td class="text-right"><div class="flex justify-end gap-2"><button @click="openKpiProjectModal(kp)" class="btn btn-ghost btn-sm">Edit</button><button @click="openDeleteConfirmation('kpi_projects',kp.ID,kp['Project Name'])" class="btn btn-danger btn-sm">Hapus</button></div></td>
                     </tr>
                   </template>
+                  <tr x-show="filteredKpiProjects.length===0"><td colspan="6"><div class="empty-state"><div class="empty-icon"><i class="fas fa-rocket"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada project ditemukan</p></div></td></tr>
                 </tbody>
               </table>
+              <div x-show="kpiProjTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+                <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="kpiProjPage"></span> dari <span class="font-bold text-slate2-700" x-text="kpiProjTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredKpiProjects.length"></span> project</p>
+                <div class="flex items-center gap-1">
+                  <button @click="kpiProjPage=1" :disabled="kpiProjPage===1" class="btn btn-ghost btn-icon-sm" :class="kpiProjPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+                  <button @click="kpiProjPage--" :disabled="kpiProjPage===1" class="btn btn-ghost btn-icon-sm" :class="kpiProjPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+                  <template x-for="p in Array.from({length:kpiProjTotalPages},(_,i)=>i+1).filter(p=>p===1||p===kpiProjTotalPages||Math.abs(p-kpiProjPage)<=1)" :key="p">
+                    <button @click="kpiProjPage=p" :class="p===kpiProjPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+                  </template>
+                  <button @click="kpiProjPage++" :disabled="kpiProjPage===kpiProjTotalPages" class="btn btn-ghost btn-icon-sm" :class="kpiProjPage===kpiProjTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+                  <button @click="kpiProjPage=kpiProjTotalPages" :disabled="kpiProjPage===kpiProjTotalPages" class="btn btn-ghost btn-icon-sm" :class="kpiProjPage===kpiProjTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -671,12 +710,12 @@
                 <i class="fas fa-plus"></i><span>Record Training</span>
               </button>
             </div>
-            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="kpiTrainSearch" placeholder="Cari judul training..." class="form-input"></div></div>
+            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="kpiTrainSearch" @input="kpiTrainPage=1" placeholder="Cari judul training..." class="form-input"></div></div>
             <div class="card overflow-hidden">
               <table class="data-table">
                 <thead><tr><th>ID</th><th>Judul Training</th><th>Topik</th><th>Metode / Lokasi</th><th class="text-center">Media</th><th class="text-right">Aksi</th></tr></thead>
                 <tbody>
-                  <template x-for="kt in filteredKpiTrainings" :key="kt.ID">
+                  <template x-for="kt in paginatedKpiTrainings" :key="kt.ID">
                     <tr>
                       <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="kt.ID"></span></td>
                       <td class="font-black text-slate2-800" x-text="kt['Judul Training']"></td>
@@ -691,8 +730,21 @@
                       <td class="text-right"><div class="flex justify-end gap-2"><button @click="openKpiTrainingModal(kt)" class="btn btn-ghost btn-sm">Edit</button><button @click="openDeleteConfirmation('kpi_trainings',kt.ID,kt['Judul Training'])" class="btn btn-danger btn-sm">Hapus</button></div></td>
                     </tr>
                   </template>
+                  <tr x-show="filteredKpiTrainings.length===0"><td colspan="6"><div class="empty-state"><div class="empty-icon"><i class="fas fa-chalkboard-user"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada training ditemukan</p></div></td></tr>
                 </tbody>
               </table>
+              <div x-show="kpiTrainTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+                <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="kpiTrainPage"></span> dari <span class="font-bold text-slate2-700" x-text="kpiTrainTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredKpiTrainings.length"></span> training</p>
+                <div class="flex items-center gap-1">
+                  <button @click="kpiTrainPage=1" :disabled="kpiTrainPage===1" class="btn btn-ghost btn-icon-sm" :class="kpiTrainPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+                  <button @click="kpiTrainPage--" :disabled="kpiTrainPage===1" class="btn btn-ghost btn-icon-sm" :class="kpiTrainPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+                  <template x-for="p in Array.from({length:kpiTrainTotalPages},(_,i)=>i+1).filter(p=>p===1||p===kpiTrainTotalPages||Math.abs(p-kpiTrainPage)<=1)" :key="p">
+                    <button @click="kpiTrainPage=p" :class="p===kpiTrainPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+                  </template>
+                  <button @click="kpiTrainPage++" :disabled="kpiTrainPage===kpiTrainTotalPages" class="btn btn-ghost btn-icon-sm" :class="kpiTrainPage===kpiTrainTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+                  <button @click="kpiTrainPage=kpiTrainTotalPages" :disabled="kpiTrainPage===kpiTrainTotalPages" class="btn btn-ghost btn-icon-sm" :class="kpiTrainPage===kpiTrainTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -710,12 +762,12 @@
                 <i class="fas fa-plus"></i><span>Buat Artikel Wiki</span>
               </button>
             </div>
-            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="wikiSearch" placeholder="Cari panduan, SOP, artikel..." class="form-input"></div></div>
+            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="wikiSearch" @input="wikiPage=1" placeholder="Cari panduan, SOP, artikel..." class="form-input"></div></div>
             <div class="card overflow-hidden">
               <table class="data-table">
                 <thead><tr><th>ID</th><th>Judul Dokumen</th><th>Kategori</th><th class="text-center">Langkah</th><th class="text-center">PDF</th><th class="text-right">Aksi</th></tr></thead>
                 <tbody>
-                  <template x-for="item in filteredWiki" :key="item.ID">
+                  <template x-for="item in paginatedWiki" :key="item.ID">
                     <tr>
                       <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="item.ID"></span></td>
                       <td>
@@ -741,6 +793,18 @@
                   <tr x-show="filteredWiki.length===0"><td colspan="6"><div class="empty-state"><div class="empty-icon"><i class="fas fa-book-open"></i></div><p class="text-sm font-bold text-slate2-400">Belum ada artikel Wiki</p><p class="text-xs text-slate2-400">Klik "Buat Artikel Wiki" untuk memulai dokumentasi</p></div></td></tr>
                 </tbody>
               </table>
+              <div x-show="wikiTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+                <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="wikiPage"></span> dari <span class="font-bold text-slate2-700" x-text="wikiTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredWiki.length"></span> artikel</p>
+                <div class="flex items-center gap-1">
+                  <button @click="wikiPage=1" :disabled="wikiPage===1" class="btn btn-ghost btn-icon-sm" :class="wikiPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+                  <button @click="wikiPage--" :disabled="wikiPage===1" class="btn btn-ghost btn-icon-sm" :class="wikiPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+                  <template x-for="p in Array.from({length:wikiTotalPages},(_,i)=>i+1).filter(p=>p===1||p===wikiTotalPages||Math.abs(p-wikiPage)<=1)" :key="p">
+                    <button @click="wikiPage=p" :class="p===wikiPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+                  </template>
+                  <button @click="wikiPage++" :disabled="wikiPage===wikiTotalPages" class="btn btn-ghost btn-icon-sm" :class="wikiPage===wikiTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+                  <button @click="wikiPage=wikiTotalPages" :disabled="wikiPage===wikiTotalPages" class="btn btn-ghost btn-icon-sm" :class="wikiPage===wikiTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -803,12 +867,12 @@
               <div><h2 class="page-title">Master Item & Aset</h2><p class="page-subtitle">Inventaris perangkat IT & aset infrastruktur</p></div>
               <button @click="openItemModal()" class="btn btn-accent"><i class="fas fa-plus"></i><span>Tambah Item Baru</span></button>
             </div>
-            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="itemSearch" placeholder="Cari nama item, brand, serial..." class="form-input"></div></div>
+            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="itemSearch" @input="itemPage=1" placeholder="Cari nama item, brand, serial..." class="form-input"></div></div>
             <div class="card overflow-hidden">
               <table class="data-table">
                 <thead><tr><th>ID</th><th>Nama Item</th><th>Kategori</th><th>Brand</th><th>Serial Number</th><th class="text-right">Est. Harga</th><th class="text-center">Status</th><th class="text-right">Aksi</th></tr></thead>
                 <tbody>
-                  <template x-for="it in filteredItems" :key="it.ID">
+                  <template x-for="it in paginatedItems" :key="it.ID">
                     <tr>
                       <td><span class="font-mono font-black text-slate2-400 text-[11px]" x-text="it.ID"></span></td>
                       <td>
@@ -830,6 +894,18 @@
                   <tr x-show="filteredItems.length===0"><td colspan="8"><div class="empty-state"><div class="empty-icon" style="background:#FFF7ED;color:#DD6B20;"><i class="fas fa-boxes-stacked"></i></div><p class="text-sm font-bold text-slate2-400">Belum ada data item</p></div></td></tr>
                 </tbody>
               </table>
+              <div x-show="itemTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+                <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="itemPage"></span> dari <span class="font-bold text-slate2-700" x-text="itemTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredItems.length"></span> item</p>
+                <div class="flex items-center gap-1">
+                  <button @click="itemPage=1" :disabled="itemPage===1" class="btn btn-ghost btn-icon-sm" :class="itemPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+                  <button @click="itemPage--" :disabled="itemPage===1" class="btn btn-ghost btn-icon-sm" :class="itemPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+                  <template x-for="p in Array.from({length:itemTotalPages},(_,i)=>i+1).filter(p=>p===1||p===itemTotalPages||Math.abs(p-itemPage)<=1)" :key="p">
+                    <button @click="itemPage=p" :class="p===itemPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+                  </template>
+                  <button @click="itemPage++" :disabled="itemPage===itemTotalPages" class="btn btn-ghost btn-icon-sm" :class="itemPage===itemTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+                  <button @click="itemPage=itemTotalPages" :disabled="itemPage===itemTotalPages" class="btn btn-ghost btn-icon-sm" :class="itemPage===itemTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1132,11 +1208,11 @@
               </button>
             </div>
 
-            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="checklistSearch" placeholder="Cari judul, site, kode form..." class="form-input"></div></div>
+            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="checklistSearch" @input="checklistPage=1" placeholder="Cari judul, site, kode form..." class="form-input"></div></div>
 
             <!-- Card grid (tiap form = 1 card karena isinya banyak baris) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <template x-for="chk in filteredChecklists" :key="chk.ID">
+              <template x-for="chk in paginatedChecklists" :key="chk.ID">
                 <div class="card p-5 hover:shadow-card-md transition">
                   <div class="flex items-start justify-between gap-2 mb-3">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:#DCFCE7;">
@@ -1170,6 +1246,20 @@
                 <div class="card"><div class="empty-state"><div class="empty-icon" style="background:#DCFCE7;color:#15803d;"><i class="fas fa-clipboard-check"></i></div><p class="text-sm font-bold text-slate2-400">Belum ada form checklist</p><p class="text-xs text-slate2-400">Klik "Buat Form Checklist" untuk mulai audit</p></div></div>
               </div>
             </div>
+
+            <!-- Pagination -->
+            <div x-show="checklistTotalPages > 1" class="card px-5 py-3.5 flex items-center justify-between">
+              <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="checklistPage"></span> dari <span class="font-bold text-slate2-700" x-text="checklistTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredChecklists.length"></span> form</p>
+              <div class="flex items-center gap-1">
+                <button @click="checklistPage=1" :disabled="checklistPage===1" class="btn btn-ghost btn-icon-sm" :class="checklistPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+                <button @click="checklistPage--" :disabled="checklistPage===1" class="btn btn-ghost btn-icon-sm" :class="checklistPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+                <template x-for="p in Array.from({length:checklistTotalPages},(_,i)=>i+1).filter(p=>p===1||p===checklistTotalPages||Math.abs(p-checklistPage)<=1)" :key="p">
+                  <button @click="checklistPage=p" :class="p===checklistPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+                </template>
+                <button @click="checklistPage++" :disabled="checklistPage===checklistTotalPages" class="btn btn-ghost btn-icon-sm" :class="checklistPage===checklistTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+                <button @click="checklistPage=checklistTotalPages" :disabled="checklistPage===checklistTotalPages" class="btn btn-ghost btn-icon-sm" :class="checklistPage===checklistTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+              </div>
+            </div>
           </div>
           <!-- ═══ END CHECKLISTS ═══ -->
 
@@ -1187,7 +1277,7 @@
                 <i class="fas fa-user-plus"></i><span>Tambah User</span>
               </button>
             </div>
-            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="userSearch" placeholder="Cari nama, departemen, email..." class="form-input"></div></div>
+            <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="userSearch" @input="userPage=1" placeholder="Cari nama, departemen, email..." class="form-input"></div></div>
             <div class="card overflow-hidden">
               <table class="data-table">
                 <thead>
@@ -1202,7 +1292,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <template x-for="usr in filteredUsers" :key="usr.ID">
+                  <template x-for="usr in paginatedUsers" :key="usr.ID">
                     <tr>
                       <td><span class="font-mono font-black text-slate2-400 text-[11px]" x-text="usr.ID"></span></td>
                       <td>
@@ -1239,6 +1329,18 @@
                   </tr>
                 </tbody>
               </table>
+              <div x-show="userTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+                <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="userPage"></span> dari <span class="font-bold text-slate2-700" x-text="userTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredUsers.length"></span> user</p>
+                <div class="flex items-center gap-1">
+                  <button @click="userPage=1" :disabled="userPage===1" class="btn btn-ghost btn-icon-sm" :class="userPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+                  <button @click="userPage--" :disabled="userPage===1" class="btn btn-ghost btn-icon-sm" :class="userPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+                  <template x-for="p in Array.from({length:userTotalPages},(_,i)=>i+1).filter(p=>p===1||p===userTotalPages||Math.abs(p-userPage)<=1)" :key="p">
+                    <button @click="userPage=p" :class="p===userPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+                  </template>
+                  <button @click="userPage++" :disabled="userPage===userTotalPages" class="btn btn-ghost btn-icon-sm" :class="userPage===userTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+                  <button @click="userPage=userTotalPages" :disabled="userPage===userTotalPages" class="btn btn-ghost btn-icon-sm" :class="userPage===userTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+                </div>
+              </div>
             </div>
           </div>
           <!-- ═══ END MASTER USERS ═══ -->
@@ -2096,12 +2198,22 @@
         vlanSearch: '', rackSearch: '', kpiProjSearch: '', kpiTrainSearch: '',
         wikiSearch: '', itemSearch: '',
         pwSearch: '', pwFilterCat: '', pwFilterLoc: '', pwFilterStatus: 'all',
-        pwPage: 1, pwPerPage: 15, pwRevealId: null,
+        pwPage: 1, pwPerPage: 20, pwRevealId: null,
         itemsPerPage: 20, currentPage: 1,
-        licSearch: '', licFilter: 'all', licPage: 1, licPerPage: 15,
+        licSearch: '', licFilter: 'all', licPage: 1, licPerPage: 20,
         licRevealKey: null, licRevealUKey: null,
         userSearch: '',
         checklistSearch: '',
+
+        // Pagination state (minimal 20 rows per page, semua modul)
+        rackPage: 1, rackPerPage: 20,
+        vlanPage: 1, vlanPerPage: 20,
+        kpiProjPage: 1, kpiProjPerPage: 20,
+        kpiTrainPage: 1, kpiTrainPerPage: 20,
+        wikiPage: 1, wikiPerPage: 20,
+        itemPage: 1, itemPerPage: 20,
+        userPage: 1, userPerPage: 20,
+        checklistPage: 1, checklistPerPage: 20,
 
         // Form models
         formCreate: { id:null, date:'', isToday:true, location:'', category:'', description:'', photoBefore:'' },
@@ -2457,15 +2569,32 @@
         },
         get paginatedIncidents() { const s=(this.currentPage-1)*this.itemsPerPage; return this.filteredIncidents.slice(s,s+this.itemsPerPage); },
         get filteredRacks() { let d=[...this.racks]; if(this.rackSearch) d=d.filter(r=>(r['Rack Name']||'').toLowerCase().includes(this.rackSearch.toLowerCase())); return d; },
+        get paginatedRacks() { const s=(this.rackPage-1)*this.rackPerPage; return this.filteredRacks.slice(s,s+this.rackPerPage); },
+        get rackTotalPages() { return Math.max(1,Math.ceil(this.filteredRacks.length/this.rackPerPage)); },
+
         get filteredVlans() { let d=[...this.vlans]; if(this.vlanSearch) d=d.filter(v=>(v['VLAN Name']||'').toLowerCase().includes(this.vlanSearch.toLowerCase())||(v['VLAN ID']||'').toString().includes(this.vlanSearch)); return d; },
+        get paginatedVlans() { const s=(this.vlanPage-1)*this.vlanPerPage; return this.filteredVlans.slice(s,s+this.vlanPerPage); },
+        get vlanTotalPages() { return Math.max(1,Math.ceil(this.filteredVlans.length/this.vlanPerPage)); },
+
         get filteredKpiProjects() { let d=[...this.kpiProjects]; if(this.kpiProjSearch) d=d.filter(p=>(p['Project Name']||'').toLowerCase().includes(this.kpiProjSearch.toLowerCase())); return d; },
+        get paginatedKpiProjects() { const s=(this.kpiProjPage-1)*this.kpiProjPerPage; return this.filteredKpiProjects.slice(s,s+this.kpiProjPerPage); },
+        get kpiProjTotalPages() { return Math.max(1,Math.ceil(this.filteredKpiProjects.length/this.kpiProjPerPage)); },
+
         get filteredKpiTrainings() { let d=[...this.kpiTrainings]; if(this.kpiTrainSearch) d=d.filter(t=>(t['Judul Training']||'').toLowerCase().includes(this.kpiTrainSearch.toLowerCase())); return d; },
+        get paginatedKpiTrainings() { const s=(this.kpiTrainPage-1)*this.kpiTrainPerPage; return this.filteredKpiTrainings.slice(s,s+this.kpiTrainPerPage); },
+        get kpiTrainTotalPages() { return Math.max(1,Math.ceil(this.filteredKpiTrainings.length/this.kpiTrainPerPage)); },
+
         get filteredWiki() { let d=[...this.wiki]; if(this.wikiSearch) d=d.filter(w=>(w.Title||'').toLowerCase().includes(this.wikiSearch.toLowerCase())); return d.sort((a,b)=>b.ID.localeCompare(a.ID)); },
+        get paginatedWiki() { const s=(this.wikiPage-1)*this.wikiPerPage; return this.filteredWiki.slice(s,s+this.wikiPerPage); },
+        get wikiTotalPages() { return Math.max(1,Math.ceil(this.filteredWiki.length/this.wikiPerPage)); },
+
         get filteredItems() {
           let d=[...this.masterItems];
           if(this.itemSearch) d=d.filter(it=>(it['Item Name']||'').toLowerCase().includes(this.itemSearch.toLowerCase())||(it.Brand||'').toLowerCase().includes(this.itemSearch.toLowerCase())||(it['Serial Number']||'').toLowerCase().includes(this.itemSearch.toLowerCase()));
           return d.sort((a,b)=>b.ID.localeCompare(a.ID));
         },
+        get paginatedItems() { const s=(this.itemPage-1)*this.itemPerPage; return this.filteredItems.slice(s,s+this.itemPerPage); },
+        get itemTotalPages() { return Math.max(1,Math.ceil(this.filteredItems.length/this.itemPerPage)); },
         get filteredPasswords() {
           let d=[...this.passwords];
           if(this.pwSearch) { const q=this.pwSearch.toLowerCase().trim(); d=d.filter(p=>String(p['App Name']||'').toLowerCase().includes(q)||String(p.URL||'').toLowerCase().includes(q)||String(p.Username||'').toLowerCase().includes(q)||String(p.Notes||'').toLowerCase().includes(q)||String(p.Category||'').toLowerCase().includes(q)||String(p.Location||'').toLowerCase().includes(q)); }
@@ -2510,6 +2639,8 @@
           }
           return d.sort((a,b) => String(b.ID).localeCompare(String(a.ID)));
         },
+        get paginatedUsers() { const s=(this.userPage-1)*this.userPerPage; return this.filteredUsers.slice(s,s+this.userPerPage); },
+        get userTotalPages() { return Math.max(1,Math.ceil(this.filteredUsers.length/this.userPerPage)); },
 
         get filteredChecklists() {
           let d = [...this.checklists];
@@ -2522,7 +2653,9 @@
             );
           }
           return d.sort((a,b) => String(b.ID).localeCompare(String(a.ID)));
-        }
+        },
+        get paginatedChecklists() { const s=(this.checklistPage-1)*this.checklistPerPage; return this.filteredChecklists.slice(s,s+this.checklistPerPage); },
+        get checklistTotalPages() { return Math.max(1,Math.ceil(this.filteredChecklists.length/this.checklistPerPage)); }
       }
     }
   </script>

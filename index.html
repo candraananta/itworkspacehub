@@ -1589,10 +1589,16 @@
             <div><label class="form-label">Kapasitas Maksimal (U)</label><select x-model="formRack.size" class="form-input cursor-pointer font-mono font-black text-royal-600"><option value="12">12 U</option><option value="15">15 U</option><option value="32">32 U</option><option value="42">42 U</option></select></div>
           </div>
           <div class="pt-4 border-t border-slate2-100">
-            <h4 class="text-[9px] font-black tracking-widest text-slate2-400 uppercase mb-3">Foto Rack</h4>
+            <h4 class="text-[9px] font-black tracking-widest text-slate2-400 uppercase mb-3">Foto Rack <span class="text-slate2-300 font-normal normal-case">(klik untuk lihat full)</span></h4>
             <div class="grid grid-cols-2 gap-2">
               <template x-for="(pic,idx) in formRack.photos" :key="idx">
-                <div class="relative rounded-xl overflow-hidden h-20 group"><img :src="pic" class="w-full h-full object-cover"><button type="button" @click="formRack.photos.splice(idx,1)" class="absolute top-1 right-1 w-5 h-5 bg-black/70 text-white rounded-full text-[9px] opacity-0 group-hover:opacity-100 flex items-center justify-center"><i class="fas fa-trash"></i></button></div>
+                <div class="relative rounded-xl overflow-hidden h-20 group cursor-pointer" @click="viewAsset('image', pic, formRack.name || 'Foto Rack')">
+                  <img :src="pic" class="w-full h-full object-cover transition group-hover:scale-105">
+                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                    <i class="fas fa-expand text-white text-sm opacity-0 group-hover:opacity-100 transition drop-shadow"></i>
+                  </div>
+                  <button type="button" @click.stop="formRack.photos.splice(idx,1)" class="absolute top-1 right-1 w-5 h-5 bg-black/70 text-white rounded-full text-[9px] opacity-0 group-hover:opacity-100 flex items-center justify-center hover:bg-red-500 transition z-10"><i class="fas fa-trash"></i></button>
+                </div>
               </template>
               <div x-show="formRack.photos.length<4" class="relative border-2 border-dashed border-slate2-200 rounded-xl h-20 flex flex-col items-center justify-center text-slate2-400 hover:bg-royal-50 hover:border-royal-400 cursor-pointer transition"><input type="file" accept="image/*" @change="handleMultiplePhotoUpload($event,formRack.photos);$event.target.value=''" class="absolute inset-0 opacity-0 cursor-pointer"><i class="fas fa-plus mb-1"></i><span class="text-[9px] font-black uppercase">Add</span></div>
             </div>

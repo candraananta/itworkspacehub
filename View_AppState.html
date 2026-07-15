@@ -1,0 +1,834 @@
+<script>
+function appState() {
+  return {
+    // ── UI State ──────────────────────────────────────────────
+    currentTab:     'dashboard',
+    initialLoading: true,
+    loading:        false,
+    submitLoading:  false,
+    showDrawer:     false,
+
+    headerTitles: {
+      'dashboard':    'Operational Dashboard',
+      'incidents':    'Incident Reports',
+      'racks':        'Rack Management',
+      'vlans':        'VLAN Topology',
+      'kpi-projects': 'KPI · Quality Delivery',
+      'kpi-trainings':'KPI · Training Records',
+      'wiki':         'Wiki Knowledge Base',
+      'passwords':    'Password Vault',
+      'm-location':   'Master Data · Lokasi',
+      'm-category':   'Master Data · Kategori',
+      'm-items':      'Master Data · Item & Aset',
+      'm-users':      'Master Data · Users',
+      'licenses':     'Office 2024 · License Manager',
+      'checklists':   'Audit · Checklist Perangkat IT'
+    },
+
+    // ── Modal Visibility ──────────────────────────────────────
+    showCreateModal:      false,
+    showCloseModal:       false,
+    showMasterModal:      false,
+    showDeleteModal:      false,
+    showVlanModal:        false,
+    showRackModal:        false,
+    showUModal:           false,
+    showViewer:           false,
+    showWikiModal:        false,
+    showKpiProjectModal:  false,
+    showKpiTrainingModal: false,
+    showItemModal:        false,
+    showPasswordModal:    false,
+    showPwInForm:         false,
+    showLicenseModal:     false,
+    showUserModal:        false,
+    showProdKey:          false,
+    showUniqueKey:        false,
+    showChecklistModal:   false,
+
+    // ── Asset Viewer ──────────────────────────────────────────
+    viewerUrl:   '',
+    viewerTitle: '',
+    viewerType:  'image',
+
+    // ── Data Arrays ───────────────────────────────────────────
+    incidents:    [],
+    vlans:        [],
+    racks:        [],
+    kpiProjects:  [],
+    kpiTrainings: [],
+    wiki:         [],
+    masterItems:  [],
+    passwords:    [],
+    masterUsers:  [],
+    licenses:     [],
+    checklists:   [],
+    masterData:   { locations: [], categories: [] },
+
+    // ── Search / Filter State ─────────────────────────────────
+    searchQuery:    '',
+    statusFilter:   'All',
+    vlanSearch:     '',
+    rackSearch:     '',
+    kpiProjSearch:  '',
+    kpiTrainSearch: '',
+    wikiSearch:     '',
+    itemSearch:     '',
+    pwSearch:       '',
+    pwFilterCat:    '',
+    pwFilterLoc:    '',
+    pwFilterStatus: 'all',
+    pwRevealId:     null,
+    licSearch:      '',
+    licFilter:      'all',
+    licRevealKey:   null,
+    licRevealUKey:  null,
+    userSearch:     '',
+    checklistSearch:'',
+
+    // ── Pagination ────────────────────────────────────────────
+    incidentPage:    1, incidentPerPage:  20,
+    rackPage:        1, rackPerPage:      20,
+    vlanPage:        1, vlanPerPage:      20,
+    kpiProjPage:     1, kpiProjPerPage:   20,
+    kpiTrainPage:    1, kpiTrainPerPage:  20,
+    wikiPage:        1, wikiPerPage:      20,
+    itemPage:        1, itemPerPage:      20,
+    pwPage:          1, pwPerPage:        20,
+    licPage:         1, licPerPage:       20,
+    userPage:        1, userPerPage:      20,
+    checklistPage:   1, checklistPerPage: 20,
+
+    // ── Form Models ───────────────────────────────────────────
+    formCreate: { id:null, date:'', isToday:true, location:'', category:'', description:'', photoBefore:'' },
+    formClose:  { id:'', photoAfter:'' },
+    formMaster: { targetSheet:'', idField:null, valueField:'' },
+    formVlan:   { id:null, vlanId:'', name:'', network:'', gateway:'', switchName:'', location:'', notes:'' },
+    formRack:   { id:null, name:'', location:'', size:42, photos:[], devices:{} },
+    currentUEdit: null,
+    formU:      { name:'', type:'Server', photo:'' },
+    formKpiProject:  { id:null, date:'', projectName:'', location:'', description:'', photos:[] },
+    formKpiTraining: { id:null, date:'', title:'', topic:'', method:'Offline', location:'', feedback:'', photos:[] },
+    formWiki:   { id:null, title:'', category:'Troubleshooting', steps:[{text:'',image:''}], pdf:'' },
+    formItem:   { id:null, itemName:'', category:'', brand:'', serialNumber:'', estPrice:'' },
+    formPassword: { id:null, appName:'', url:'', username:'', password:'', category:'', location:'', notes:'', isActive:true },
+    formLicense: { id:null, partNumber:'', productName:'', productNameManual:'', qty:1, productKey:'', uniqueKey:'', activationDate:'', hostname:'', user:'', itemId:'', laptopBrandType:'', akunAdmin:'' },
+    formUser:   { id:null, fullName:'', department:'', email:'', phone:'' },
+    formChecklist: { id:null, formCode:'', judul:'', tanggal:'', site:'', items:[] },
+    deleteQueue: { sheet:'', id:'', name:'' },
+    toasts: [],
+
+    // ── Init ──────────────────────────────────────────────────
+    init() {
+      this.setTodayDate();
+      this.fetchData();
+    },
+
+    // ── Fetch All Data from GAS ───────────────────────────────
+    fetchData() {
+      this.loading = true;
+
+      // Timeout guard: jika GAS tidak merespons dalam 15 detik
+      const timeoutId = setTimeout(() => {
+        if (this.initialLoading) {
+          this.initialLoading = false;
+          this.loading        = false;
+          this.showToast('⚠️ Koneksi GAS timeout. Coba refresh halaman.', 'error');
+        }
+      }, 15000);
+
+      // Guard: google.script.run hanya tersedia di dalam GAS WebApp
+      if (typeof google === 'undefined' || !google.script) {
+        clearTimeout(timeoutId);
+        this.initialLoading = false;
+        this.loading        = false;
+        this.showToast('Mode Preview: Buka via URL Deploy GAS.', 'error');
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(res => {
+          clearTimeout(timeoutId);
+          if (res.success) {
+            this.incidents        = res.incidents    || [];
+            this.masterData.locations  = res.locations   || [];
+            this.masterData.categories = res.categories  || [];
+            this.vlans            = res.vlans        || [];
+            this.racks            = res.racks        || [];
+            this.kpiProjects      = res.kpiProjects  || [];
+            this.kpiTrainings     = res.kpiTrainings || [];
+            this.wiki             = res.wiki         || [];
+            this.masterItems      = res.masterItems  || [];
+            this.passwords        = res.passwords    || [];
+            this.masterUsers      = res.masterUsers  || [];
+            this.licenses         = res.licenses     || [];
+            this.checklists       = res.checklists   || [];
+          } else {
+            this.showToast('Error: ' + (res.message || 'Unknown error'), 'error');
+          }
+          this.initialLoading = false;
+          this.loading        = false;
+        })
+        .withFailureHandler(err => {
+          clearTimeout(timeoutId);
+          this.showToast('Gagal terhubung ke GAS. Coba refresh.', 'error');
+          this.initialLoading = false;
+          this.loading        = false;
+        })
+        .getInitialData();
+    },
+
+    // ── Date Helper ───────────────────────────────────────────
+    setTodayDate() {
+      const d = new Date();
+      this.formCreate.date = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    },
+    _today() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    },
+
+    // ══════════════════════════════════════════════════════════
+    //  MODAL OPENERS
+    // ══════════════════════════════════════════════════════════
+    openCreateModal() {
+      this.formCreate = { id:null, date:'', isToday:true, location:'', category:'', description:'', photoBefore:'' };
+      this.setTodayDate();
+      this.showCreateModal = true;
+    },
+    openEditIncident(item) {
+      this.formCreate = {
+        id: item.ID, date: item.Tanggal, isToday: false,
+        location: item.Location, category: item.Category,
+        description: item.Description, photoBefore: item['Photo Before'] || ''
+      };
+      this.showCreateModal = true;
+    },
+    openCloseModal(item) {
+      this.formClose = { id: item.ID, photoAfter: '' };
+      this.showCloseModal = true;
+    },
+    openMasterModal(type, item = null) {
+      this.formMaster = {
+        targetSheet: type,
+        idField:     item ? item.ID : null,
+        valueField:  item ? (item['Location Name'] || item['Category Name'] || '') : ''
+      };
+      this.showMasterModal = true;
+    },
+    openVlanModal(item = null) {
+      if (item) {
+        this.formVlan = {
+          id: item.ID, vlanId: item['VLAN ID'], name: item['VLAN Name'],
+          network: item.Network, gateway: item.Gateway,
+          switchName: item['Switch Target'], location: item.Location, notes: item.Notes || ''
+        };
+      } else {
+        this.formVlan = { id:null, vlanId:'', name:'', network:'', gateway:'', switchName:'', location:'', notes:'' };
+      }
+      this.showVlanModal = true;
+    },
+    openRackModal(item = null) {
+      if (item) {
+        this.formRack = {
+          id: item.ID, name: item['Rack Name'], location: item.Location,
+          size: parseInt(item.Size) || 42, photos: item.Photos || [], devices: item.Devices || {}
+        };
+      } else {
+        this.formRack = { id:null, name:'', location:'', size:42, photos:[], devices:{} };
+      }
+      this.showRackModal = true;
+    },
+    openUModal(u) {
+      this.currentUEdit = u;
+      const e = this.formRack.devices[u] || {};
+      this.formU = { name: e.name || '', type: e.type || 'Server', photo: e.photo || '' };
+      this.showUModal = true;
+    },
+    openKpiProjectModal(item = null) {
+      if (item) {
+        this.formKpiProject = {
+          id: item.ID, date: item.Tanggal, projectName: item['Project Name'],
+          location: item.Location, description: item.Description, photos: item.Photos || []
+        };
+      } else {
+        this.formKpiProject = { id:null, date:this._today(), projectName:'', location:'', description:'', photos:[] };
+      }
+      this.showKpiProjectModal = true;
+    },
+    openKpiTrainingModal(item = null) {
+      if (item) {
+        this.formKpiTraining = {
+          id: item.ID, date: item.Tanggal, title: item['Judul Training'],
+          topic: item.Topic, method: item.Method, location: item.Location,
+          feedback: item.Feedback || '', photos: item.Photos || []
+        };
+      } else {
+        this.formKpiTraining = { id:null, date:this._today(), title:'', topic:'', method:'Offline', location:'', feedback:'', photos:[] };
+      }
+      this.showKpiTrainingModal = true;
+    },
+    openWikiModal(item = null) {
+      if (item) {
+        this.formWiki = {
+          id: item.ID, title: item.Title, category: item.Category,
+          steps: JSON.parse(JSON.stringify(item.Steps_JSON || [])),
+          pdf: item.PDF_Attachment || ''
+        };
+      } else {
+        this.formWiki = { id:null, title:'', category:'Troubleshooting', steps:[{text:'',image:''}], pdf:'' };
+      }
+      this.showWikiModal = true;
+    },
+    openItemModal(item = null) {
+      if (item) {
+        this.formItem = {
+          id: item.ID, itemName: item['Item Name'], category: item.Category || '',
+          brand: item.Brand || '', serialNumber: item['Serial Number'] || '',
+          estPrice: item.est_price || ''
+        };
+      } else {
+        this.formItem = { id:null, itemName:'', category:'', brand:'', serialNumber:'', estPrice:'' };
+      }
+      this.showItemModal = true;
+    },
+    openPasswordModal(item = null) {
+      if (item) {
+        this.formPassword = {
+          id: item.ID, appName: item['App Name'], url: item.URL || '',
+          username: item.Username || '', password: item.Password,
+          category: item.Category || '', location: item.Location || '',
+          notes: item.Notes || '', isActive: item['Is Active'] === true
+        };
+      } else {
+        this.formPassword = { id:null, appName:'', url:'', username:'', password:'', category:'', location:'', notes:'', isActive:true };
+      }
+      this.showPwInForm    = false;
+      this.showPasswordModal = true;
+    },
+    openLicenseModal(item = null) {
+      if (item) {
+        this.formLicense = {
+          id: item.ID, partNumber: item['Part Number'] || '',
+          productName: item['Product Name'] || '', productNameManual: '',
+          qty: item.Qty || 1, productKey: item['Product Key'] || '',
+          uniqueKey: item['Unique Key'] || '',
+          activationDate: (item['Tanggal Aktivasi'] || '').substring(0, 10),
+          hostname: item.Hostname || '', user: item.User || '',
+          itemId: item['Item ID'] || '', laptopBrandType: item['Laptop Brand Type'] || '',
+          akunAdmin: item['Akun Admin'] || ''
+        };
+      } else {
+        this.formLicense = {
+          id:null, partNumber:'', productName:'', productNameManual:'',
+          qty:1, productKey:'', uniqueKey:'',
+          activationDate: this._today(),
+          hostname:'', user:'', itemId:'', laptopBrandType:'', akunAdmin:''
+        };
+      }
+      this.showProdKey     = false;
+      this.showUniqueKey   = false;
+      this.showLicenseModal = true;
+    },
+    openUserModal(item = null) {
+      if (item) {
+        this.formUser = {
+          id: item.ID, fullName: item['Full Name'],
+          department: item.Department || '', email: item.Email || '', phone: item.Phone || ''
+        };
+      } else {
+        this.formUser = { id:null, fullName:'', department:'', email:'', phone:'' };
+      }
+      this.showUserModal = true;
+    },
+    openDeleteConfirmation(sheet, id, name) {
+      this.deleteQueue = { sheet, id, name };
+      this.showDeleteModal = true;
+    },
+    viewAsset(type, url, title = 'Dokumen') {
+      this.viewerType  = type;
+      this.viewerUrl   = url;
+      this.viewerTitle = title;
+      this.showViewer  = true;
+    },
+
+    // ── Checklist helpers ─────────────────────────────────────
+    _defaultChecklistTemplate() {
+      return [
+        {
+          categoryName: 'PEMERIKSAAN LINGKUNGAN RUANG SERVER',
+          rows: [
+            { parameter:'Temperatur Ruang', standarLimit:'18°C - 27°C', potensiResiko:'Risiko overheating jika suhu terlalu tinggi.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+            { parameter:'Kelembapan', standarLimit:'40% - 60%', potensiResiko:'Risiko kondensasi atau listrik statis.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+            { parameter:'Ventilasi', standarLimit:'AC & ventilasi bekerja baik', potensiResiko:'Risiko panas berlebih.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+            { parameter:'Kebersihan', standarLimit:'Bebas debu dan bahan inflamable', potensiResiko:'Risiko kerusakan komponen.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+            { parameter:'Keamanan', standarLimit:'Ruang terkunci', potensiResiko:'Risiko keamanan fisik.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' }
+          ]
+        },
+        {
+          categoryName: 'PEMERIKSAAN SERVER DAN PERANGKAT KERAS',
+          rows: [
+            { parameter:'Status Power Supply', standarLimit:'Perangkat menyala normal', potensiResiko:'Risiko mati mendadak.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+            { parameter:'UPS', standarLimit:'Baterai kondisi baik', potensiResiko:'Risiko kegagalan saat pemadaman.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+            { parameter:'Kondisi Fisik Server', standarLimit:'Ventilasi tidak tersumbat', potensiResiko:'Risiko overheating.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' }
+          ]
+        },
+        {
+          categoryName: 'PEMERIKSAAN KONEKSI JARINGAN',
+          rows: [
+            { parameter:'Wifi / Ethernet', standarLimit:'Cek ping & port konektor', potensiResiko:'Risiko koneksi terputus.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' },
+            { parameter:'Bandwidth Utilization', standarLimit:'Tidak ada bottleneck', potensiResiko:'Risiko performa menurun.', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' }
+          ]
+        }
+      ];
+    },
+    _emptyChecklistRow() {
+      return { parameter:'', standarLimit:'', potensiResiko:'', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' };
+    },
+    openChecklistModal(item = null) {
+      if (item) {
+        this.formChecklist = {
+          id: item.ID, formCode: item['Form Code'] || '',
+          judul: item.Judul || '',
+          tanggal: (item.Tanggal || '').substring(0, 10),
+          site: item.Site || '',
+          items: JSON.parse(JSON.stringify(item.Items_JSON || []))
+        };
+      } else {
+        this.formChecklist = {
+          id:null, formCode:'', judul:'FORM CHECKLIST PERANGKAT IT',
+          tanggal: this._today(), site:'',
+          items: this._defaultChecklistTemplate()
+        };
+      }
+      this.showChecklistModal = true;
+    },
+    addChecklistCategory() {
+      this.formChecklist.items.push({ categoryName:'', rows:[this._emptyChecklistRow()] });
+    },
+    removeChecklistCategory(catIdx) {
+      this.formChecklist.items.splice(catIdx, 1);
+    },
+    addChecklistRow(catIdx) {
+      this.formChecklist.items[catIdx].rows.push(this._emptyChecklistRow());
+    },
+    removeChecklistRow(catIdx, rowIdx) {
+      this.formChecklist.items[catIdx].rows.splice(rowIdx, 1);
+    },
+    countChecklistStatus(chk, statusVal) {
+      let count = 0;
+      (chk.Items_JSON || []).forEach(cat => {
+        (cat.rows || []).forEach(row => { if (row.statusBaik === statusVal) count++; });
+      });
+      return count;
+    },
+    countChecklistRows(chk) {
+      let count = 0;
+      (chk.Items_JSON || []).forEach(cat => { count += (cat.rows || []).length; });
+      return count;
+    },
+
+    // ── License helpers ───────────────────────────────────────
+    syncLicenseProduct() {
+      if (this.formLicense.productName && this.formLicense.productName !== '__manual__') {
+        const found = this.masterItems.find(it => it['Item Name'] === this.formLicense.productName);
+        if (found && !this.formLicense.partNumber) {
+          this.formLicense.partNumber = found['Serial Number'] || '';
+        }
+      }
+    },
+    syncLicenseItem() {
+      if (this.formLicense.laptopBrandType) {
+        const found = this.masterItems.find(it => {
+          const label = (it.Brand ? it.Brand + ' ' : '') + it['Item Name'];
+          return label === this.formLicense.laptopBrandType || this.formLicense.laptopBrandType.startsWith(label);
+        });
+        this.formLicense.itemId = found ? found.ID : '';
+      }
+    },
+
+    // ── Rack helpers ──────────────────────────────────────────
+    getDeviceIcon(type) {
+      const icons = {
+        Server: 'fas fa-server', Switch: 'fas fa-network-wired',
+        Router: 'fas fa-route', UPS: 'fas fa-car-battery', Storage: 'fas fa-database'
+      };
+      return icons[type] || 'fas fa-box';
+    },
+    saveUSlot() {
+      if (!this.formU.name.trim()) {
+        delete this.formRack.devices[this.currentUEdit];
+      } else {
+        this.formRack.devices[this.currentUEdit] = { ...this.formU };
+      }
+      this.showUModal = false;
+    },
+
+    // ── Image / File Processing ───────────────────────────────
+    processImageFile(file, maxDim, quality, callback) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          if (w > h && w > maxDim) { h *= maxDim / w; w = maxDim; }
+          else if (h > maxDim)     { w *= maxDim / h; h = maxDim; }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          callback(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    },
+    handleMultiplePhotoUpload(e, targetArr) {
+      this.processImageFile(e.target.files[0], 600, 0.5, b64 => targetArr.push(b64));
+    },
+    handleStepImageUpload(e, idx) {
+      this.processImageFile(e.target.files[0], 600, 0.5, b64 => { this.formWiki.steps[idx].image = b64; });
+    },
+    handlePdfUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { alert('Maks. ukuran PDF adalah 2MB.'); return; }
+      const reader = new FileReader();
+      reader.onload = ev => { this.formWiki.pdf = ev.target.result; };
+      reader.readAsDataURL(file);
+    },
+
+    // ══════════════════════════════════════════════════════════
+    //  FORM SUBMIT ENGINE
+    // ══════════════════════════════════════════════════════════
+    _submit(fn, data, closeKey) {
+      this[closeKey]     = false;
+      this.submitLoading = true;
+      google.script.run
+        .withSuccessHandler(res => {
+          this.submitLoading = false;
+          this.showToast(res.message, res.success ? 'success' : 'error');
+          if (res.success) this.fetchData();
+        })
+        .withFailureHandler(err => {
+          this.submitLoading = false;
+          this.showToast('Error: ' + err.message, 'error');
+        })
+        [fn](data);
+    },
+
+    submitCreateForm() {
+      if (!this.formCreate.location) return alert('Lokasi wajib dipilih!');
+      if (!this.formCreate.category) return alert('Kategori wajib dipilih!');
+      if (!this.formCreate.description.trim()) return alert('Deskripsi wajib diisi!');
+      this._submit(this.formCreate.id ? 'updateIncident' : 'createIncident', this.formCreate, 'showCreateModal');
+    },
+    submitCloseForm() {
+      this._submit('closeIncident', this.formClose, 'showCloseModal');
+    },
+    submitVlanForm() {
+      if (!this.formVlan.vlanId) return alert('VLAN ID wajib diisi!');
+      if (!this.formVlan.name)   return alert('Nama VLAN wajib diisi!');
+      this._submit('saveVlanRow', this.formVlan, 'showVlanModal');
+    },
+    submitRackForm() {
+      if (!this.formRack.name) return alert('Nama Rack wajib diisi!');
+      this._submit('saveRackRow', this.formRack, 'showRackModal');
+    },
+    submitKpiProjectForm() {
+      if (!this.formKpiProject.projectName.trim()) return alert('Nama Project wajib diisi!');
+      this._submit('saveKpiProjectRow', this.formKpiProject, 'showKpiProjectModal');
+    },
+    submitKpiTrainingForm() {
+      if (!this.formKpiTraining.title.trim()) return alert('Judul Training wajib diisi!');
+      this._submit('saveKpiTrainingRow', this.formKpiTraining, 'showKpiTrainingModal');
+    },
+    submitMasterForm() {
+      if (!this.formMaster.valueField.trim()) return alert('Nama entitas wajib diisi!');
+      this._submit('saveMasterRow', this.formMaster, 'showMasterModal');
+    },
+    submitItemForm() {
+      if (!this.formItem.itemName.trim()) return alert('Nama Item wajib diisi!');
+      this._submit('saveMasterItemRow', this.formItem, 'showItemModal');
+    },
+    submitWikiForm() {
+      if (!this.formWiki.title.trim()) return alert('Judul SOP wajib diisi!');
+      this._submit('saveWikiRow', this.formWiki, 'showWikiModal');
+    },
+    submitPasswordForm() {
+      if (!this.formPassword.appName.trim()) return alert('App Name wajib diisi!');
+      if (!this.formPassword.password.trim()) return alert('Password wajib diisi!');
+      this._submit('savePasswordRow', this.formPassword, 'showPasswordModal');
+    },
+    submitLicenseForm() {
+      const productName = this.formLicense.productName === '__manual__'
+        ? this.formLicense.productNameManual
+        : this.formLicense.productName;
+      if (!productName || !productName.trim()) return alert('Product Name wajib diisi!');
+      if (!this.formLicense.uniqueKey.trim()) return alert('Unique Key wajib diisi!');
+      this._submit('saveLicenseRow', { ...this.formLicense, productName }, 'showLicenseModal');
+    },
+    submitUserForm() {
+      if (!this.formUser.fullName.trim()) return alert('Nama Lengkap wajib diisi!');
+      this._submit('saveMasterUserRow', this.formUser, 'showUserModal');
+    },
+    submitChecklistForm() {
+      if (!this.formChecklist.judul.trim()) return alert('Judul Form wajib diisi!');
+      if (!this.formChecklist.site.trim())  return alert('Site wajib dipilih!');
+      if (this.formChecklist.items.length === 0) return alert('Tambahkan minimal 1 kategori pemeriksaan!');
+      this._submit('saveChecklistRow', this.formChecklist, 'showChecklistModal');
+    },
+    executeDeleteRecord() {
+      this.showDeleteModal = false;
+      this.submitLoading   = true;
+      google.script.run
+        .withSuccessHandler(res => {
+          this.submitLoading = false;
+          this.showToast(res.message, res.success ? 'success' : 'error');
+          if (res.success) this.fetchData();
+        })
+        .withFailureHandler(err => {
+          this.submitLoading = false;
+          this.showToast('Error: ' + err.message, 'error');
+        })
+        .executeDeleteRecord(this.deleteQueue.sheet, this.deleteQueue.id);
+    },
+
+    // ══════════════════════════════════════════════════════════
+    //  TOAST SYSTEM
+    // ══════════════════════════════════════════════════════════
+    showToast(msg, type = 'success') {
+      const id = Date.now();
+      this.toasts.push({ id, msg, type });
+      setTimeout(() => this.removeToast(id), 4500);
+    },
+    removeToast(id) {
+      this.toasts = this.toasts.filter(t => t.id !== id);
+    },
+
+    // ══════════════════════════════════════════════════════════
+    //  COMPUTED FILTERS & PAGINATION
+    // ══════════════════════════════════════════════════════════
+
+    // ── Incidents ─────────────────────────────────────────────
+    get filteredIncidents() {
+      let d = [...this.incidents];
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase();
+        d = d.filter(i =>
+          (i.ID || '').toLowerCase().includes(q) ||
+          (i.Description || '').toLowerCase().includes(q) ||
+          (i.Location || '').toLowerCase().includes(q) ||
+          (i.Category || '').toLowerCase().includes(q)
+        );
+      }
+      if (this.statusFilter !== 'All') d = d.filter(i => i.Status === this.statusFilter);
+      return d.sort((a, b) => String(b.ID).localeCompare(String(a.ID)));
+    },
+    get paginatedIncidents() {
+      const s = (this.incidentPage - 1) * this.incidentPerPage;
+      return this.filteredIncidents.slice(s, s + this.incidentPerPage);
+    },
+    get incidentTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredIncidents.length / this.incidentPerPage));
+    },
+
+    // ── Racks ─────────────────────────────────────────────────
+    get filteredRacks() {
+      if (!this.rackSearch) return [...this.racks];
+      const q = this.rackSearch.toLowerCase();
+      return this.racks.filter(r => (r['Rack Name'] || '').toLowerCase().includes(q));
+    },
+    get paginatedRacks() {
+      const s = (this.rackPage - 1) * this.rackPerPage;
+      return this.filteredRacks.slice(s, s + this.rackPerPage);
+    },
+    get rackTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredRacks.length / this.rackPerPage));
+    },
+
+    // ── VLANs ─────────────────────────────────────────────────
+    get filteredVlans() {
+      if (!this.vlanSearch) return [...this.vlans];
+      const q = this.vlanSearch.toLowerCase();
+      return this.vlans.filter(v =>
+        (v['VLAN Name'] || '').toLowerCase().includes(q) ||
+        String(v['VLAN ID'] || '').includes(q) ||
+        (v['Switch Target'] || '').toLowerCase().includes(q)
+      );
+    },
+    get paginatedVlans() {
+      const s = (this.vlanPage - 1) * this.vlanPerPage;
+      return this.filteredVlans.slice(s, s + this.vlanPerPage);
+    },
+    get vlanTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredVlans.length / this.vlanPerPage));
+    },
+
+    // ── KPI Projects ──────────────────────────────────────────
+    get filteredKpiProjects() {
+      if (!this.kpiProjSearch) return [...this.kpiProjects];
+      const q = this.kpiProjSearch.toLowerCase();
+      return this.kpiProjects.filter(p => (p['Project Name'] || '').toLowerCase().includes(q));
+    },
+    get paginatedKpiProjects() {
+      const s = (this.kpiProjPage - 1) * this.kpiProjPerPage;
+      return this.filteredKpiProjects.slice(s, s + this.kpiProjPerPage);
+    },
+    get kpiProjTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredKpiProjects.length / this.kpiProjPerPage));
+    },
+
+    // ── KPI Trainings ─────────────────────────────────────────
+    get filteredKpiTrainings() {
+      if (!this.kpiTrainSearch) return [...this.kpiTrainings];
+      const q = this.kpiTrainSearch.toLowerCase();
+      return this.kpiTrainings.filter(t => (t['Judul Training'] || '').toLowerCase().includes(q));
+    },
+    get paginatedKpiTrainings() {
+      const s = (this.kpiTrainPage - 1) * this.kpiTrainPerPage;
+      return this.filteredKpiTrainings.slice(s, s + this.kpiTrainPerPage);
+    },
+    get kpiTrainTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredKpiTrainings.length / this.kpiTrainPerPage));
+    },
+
+    // ── Wiki ──────────────────────────────────────────────────
+    get filteredWiki() {
+      let d = [...this.wiki];
+      if (this.wikiSearch) {
+        const q = this.wikiSearch.toLowerCase();
+        d = d.filter(w =>
+          (w.Title || '').toLowerCase().includes(q) ||
+          (w.Category || '').toLowerCase().includes(q)
+        );
+      }
+      return d.sort((a, b) => String(b.ID).localeCompare(String(a.ID)));
+    },
+    get paginatedWiki() {
+      const s = (this.wikiPage - 1) * this.wikiPerPage;
+      return this.filteredWiki.slice(s, s + this.wikiPerPage);
+    },
+    get wikiTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredWiki.length / this.wikiPerPage));
+    },
+
+    // ── Master Items ──────────────────────────────────────────
+    get filteredItems() {
+      let d = [...this.masterItems];
+      if (this.itemSearch) {
+        const q = this.itemSearch.toLowerCase();
+        d = d.filter(it =>
+          (it['Item Name'] || '').toLowerCase().includes(q) ||
+          (it.Brand || '').toLowerCase().includes(q) ||
+          (it['Serial Number'] || '').toLowerCase().includes(q)
+        );
+      }
+      return d.sort((a, b) => String(b.ID).localeCompare(String(a.ID)));
+    },
+    get paginatedItems() {
+      const s = (this.itemPage - 1) * this.itemPerPage;
+      return this.filteredItems.slice(s, s + this.itemPerPage);
+    },
+    get itemTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredItems.length / this.itemPerPage));
+    },
+
+    // ── Passwords ─────────────────────────────────────────────
+    get filteredPasswords() {
+      let d = [...this.passwords];
+      if (this.pwSearch) {
+        const q = this.pwSearch.toLowerCase().trim();
+        d = d.filter(p =>
+          String(p['App Name'] || '').toLowerCase().includes(q) ||
+          String(p.URL || '').toLowerCase().includes(q) ||
+          String(p.Username || '').toLowerCase().includes(q) ||
+          String(p.Notes || '').toLowerCase().includes(q) ||
+          String(p.Category || '').toLowerCase().includes(q) ||
+          String(p.Location || '').toLowerCase().includes(q)
+        );
+      }
+      if (this.pwFilterCat) d = d.filter(p => String(p.Category || '') === this.pwFilterCat);
+      if (this.pwFilterLoc) d = d.filter(p => String(p.Location || '') === this.pwFilterLoc);
+      if (this.pwFilterStatus === 'active')   d = d.filter(p => p['Is Active'] === true);
+      if (this.pwFilterStatus === 'inactive') d = d.filter(p => p['Is Active'] === false);
+      return d.sort((a, b) => String(b.ID).localeCompare(String(a.ID)));
+    },
+    get paginatedPasswords() {
+      const s = (this.pwPage - 1) * this.pwPerPage;
+      return this.filteredPasswords.slice(s, s + this.pwPerPage);
+    },
+    get pwTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredPasswords.length / this.pwPerPage));
+    },
+
+    // ── Licenses ──────────────────────────────────────────────
+    get filteredLicenses() {
+      let d = [...this.licenses];
+      if (this.licSearch) {
+        const q = this.licSearch.toLowerCase().trim();
+        d = d.filter(l =>
+          String(l['Part Number'] || '').toLowerCase().includes(q) ||
+          String(l['Product Name'] || '').toLowerCase().includes(q) ||
+          String(l.Hostname || '').toLowerCase().includes(q) ||
+          String(l.User || '').toLowerCase().includes(q) ||
+          String(l['Laptop Brand Type'] || '').toLowerCase().includes(q) ||
+          String(l['Unique Key'] || '').toLowerCase().includes(q)
+        );
+      }
+      if (this.licFilter === 'activated') d = d.filter(l => l['Tanggal Aktivasi'] && String(l['Tanggal Aktivasi']).trim() !== '');
+      if (this.licFilter === 'pending')   d = d.filter(l => !l['Tanggal Aktivasi'] || String(l['Tanggal Aktivasi']).trim() === '');
+      return d.sort((a, b) => String(b.ID).localeCompare(String(a.ID)));
+    },
+    get paginatedLicenses() {
+      const s = (this.licPage - 1) * this.licPerPage;
+      return this.filteredLicenses.slice(s, s + this.licPerPage);
+    },
+    get licTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredLicenses.length / this.licPerPage));
+    },
+
+    // ── Master Users ──────────────────────────────────────────
+    get filteredUsers() {
+      let d = [...this.masterUsers];
+      if (this.userSearch) {
+        const q = this.userSearch.toLowerCase().trim();
+        d = d.filter(u =>
+          String(u['Full Name'] || '').toLowerCase().includes(q) ||
+          String(u.Department || '').toLowerCase().includes(q) ||
+          String(u.Email || '').toLowerCase().includes(q)
+        );
+      }
+      return d.sort((a, b) => String(b.ID).localeCompare(String(a.ID)));
+    },
+    get paginatedUsers() {
+      const s = (this.userPage - 1) * this.userPerPage;
+      return this.filteredUsers.slice(s, s + this.userPerPage);
+    },
+    get userTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredUsers.length / this.userPerPage));
+    },
+
+    // ── Checklists ────────────────────────────────────────────
+    get filteredChecklists() {
+      let d = [...this.checklists];
+      if (this.checklistSearch) {
+        const q = this.checklistSearch.toLowerCase().trim();
+        d = d.filter(c =>
+          String(c.Judul || '').toLowerCase().includes(q) ||
+          String(c.Site || '').toLowerCase().includes(q) ||
+          String(c['Form Code'] || '').toLowerCase().includes(q)
+        );
+      }
+      return d.sort((a, b) => String(b.ID).localeCompare(String(a.ID)));
+    },
+    get paginatedChecklists() {
+      const s = (this.checklistPage - 1) * this.checklistPerPage;
+      return this.filteredChecklists.slice(s, s + this.checklistPerPage);
+    },
+    get checklistTotalPages() {
+      return Math.max(1, Math.ceil(this.filteredChecklists.length / this.checklistPerPage));
+    }
+  };
+}
+</script>

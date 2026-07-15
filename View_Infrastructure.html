@@ -1,0 +1,112 @@
+<!-- ═══ RACK MANAGEMENT ═══ -->
+<div x-show="currentTab === 'racks'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Rack Management</h2>
+      <p class="page-subtitle">Visualisasi topologi server rack data center</p>
+    </div>
+    <button @click="openRackModal()" class="btn btn-primary"><i class="fas fa-server"></i><span>Registrasi Rack</span></button>
+  </div>
+  <div class="card p-4">
+    <div class="search-wrap max-w-sm"><i class="fas fa-search"></i>
+      <input type="text" x-model="rackSearch" @input="rackPage=1" placeholder="Cari rack..." class="form-input">
+    </div>
+  </div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>Nama Rack</th><th>Lokasi</th><th class="text-center">Kapasitas</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="r in paginatedRacks" :key="r.ID">
+          <tr>
+            <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="r.ID"></span></td>
+            <td>
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-royal-50 flex items-center justify-center"><i class="fas fa-server text-royal-600 text-xs"></i></div>
+                <span class="font-black text-slate2-800" x-text="r['Rack Name']"></span>
+              </div>
+            </td>
+            <td class="text-slate2-500" x-text="r.Location"></td>
+            <td class="text-center"><span class="badge badge-blue font-mono font-black" x-text="r.Size + ' U'"></span></td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openRackModal(r)" class="btn btn-ghost btn-sm"><i class="fas fa-eye mr-1"></i>Visualizer</button>
+                <button @click="openDeleteConfirmation('racks',r.ID,r['Rack Name'])" class="btn btn-danger btn-sm"><i class="fas fa-trash-can mr-1"></i>Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="filteredRacks.length===0">
+          <td colspan="5"><div class="empty-state"><div class="empty-icon"><i class="fas fa-server"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada rack ditemukan</p></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div x-show="rackTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold" x-text="rackPage"></span> dari <span class="font-bold" x-text="rackTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredRacks.length"></span> rack</p>
+      <div class="flex items-center gap-1">
+        <button @click="rackPage=1" :disabled="rackPage===1" class="btn btn-ghost btn-icon-sm" :class="rackPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="rackPage--" :disabled="rackPage===1" class="btn btn-ghost btn-icon-sm" :class="rackPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:rackTotalPages},(_,i)=>i+1).filter(p=>p===1||p===rackTotalPages||Math.abs(p-rackPage)<=1)" :key="p">
+          <button @click="rackPage=p" :class="p===rackPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="rackPage++" :disabled="rackPage===rackTotalPages" class="btn btn-ghost btn-icon-sm" :class="rackPage===rackTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="rackPage=rackTotalPages" :disabled="rackPage===rackTotalPages" class="btn btn-ghost btn-icon-sm" :class="rackPage===rackTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VLAN SETUP ═══ -->
+<div x-show="currentTab === 'vlans'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">VLAN Setup</h2>
+      <p class="page-subtitle">Konfigurasi & monitoring topologi jaringan VLAN</p>
+    </div>
+    <button @click="openVlanModal()" class="btn btn-primary"><i class="fas fa-network-wired"></i><span>Deploy VLAN</span></button>
+  </div>
+  <div class="card p-4">
+    <div class="search-wrap max-w-sm"><i class="fas fa-search"></i>
+      <input type="text" x-model="vlanSearch" @input="vlanPage=1" placeholder="Cari IP / Subnet / Switch..." class="form-input">
+    </div>
+  </div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>VLAN Info</th><th>Network & Gateway</th><th>Switch Target</th><th>Lokasi</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="v in paginatedVlans" :key="v.ID">
+          <tr>
+            <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="v.ID"></span></td>
+            <td>
+              <p class="font-black text-slate2-800" x-text="'VLAN ' + v['VLAN ID']"></p>
+              <p class="text-[11px] text-slate2-400" x-text="v['VLAN Name']"></p>
+            </td>
+            <td><span class="font-mono text-[11px] text-slate2-600" x-text="v.Network + ' [GW: ' + v.Gateway + ']'"></span></td>
+            <td><span class="badge badge-blue" x-text="v['Switch Target']"></span></td>
+            <td class="text-slate2-500" x-text="v.Location"></td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openVlanModal(v)" class="btn btn-ghost btn-sm">Edit</button>
+                <button @click="openDeleteConfirmation('vlans',v.ID,v['VLAN Name'])" class="btn btn-danger btn-sm">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="filteredVlans.length===0">
+          <td colspan="6"><div class="empty-state"><div class="empty-icon"><i class="fas fa-network-wired"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada VLAN ditemukan</p></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div x-show="vlanTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold" x-text="vlanPage"></span> dari <span class="font-bold" x-text="vlanTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredVlans.length"></span> VLAN</p>
+      <div class="flex items-center gap-1">
+        <button @click="vlanPage=1" :disabled="vlanPage===1" class="btn btn-ghost btn-icon-sm" :class="vlanPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="vlanPage--" :disabled="vlanPage===1" class="btn btn-ghost btn-icon-sm" :class="vlanPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:vlanTotalPages},(_,i)=>i+1).filter(p=>p===1||p===vlanTotalPages||Math.abs(p-vlanPage)<=1)" :key="p">
+          <button @click="vlanPage=p" :class="p===vlanPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="vlanPage++" :disabled="vlanPage===vlanTotalPages" class="btn btn-ghost btn-icon-sm" :class="vlanPage===vlanTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="vlanPage=vlanTotalPages" :disabled="vlanPage===vlanTotalPages" class="btn btn-ghost btn-icon-sm" :class="vlanPage===vlanTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

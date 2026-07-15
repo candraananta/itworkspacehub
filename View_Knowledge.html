@@ -1,0 +1,68 @@
+<div x-show="currentTab === 'wiki'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Wiki Knowledge Base</h2>
+      <p class="page-subtitle">Dokumentasi SOP & panduan troubleshooting jaringan</p>
+    </div>
+    <button @click="openWikiModal()" class="btn" style="background:#059669;color:#fff;box-shadow:0 4px 14px rgba(5,150,105,.2);">
+      <i class="fas fa-plus"></i><span>Buat Artikel Wiki</span>
+    </button>
+  </div>
+  <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="wikiSearch" @input="wikiPage=1" placeholder="Cari panduan, SOP, artikel..." class="form-input"></div></div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>Judul Dokumen</th><th>Kategori</th><th class="text-center">Langkah</th><th class="text-center">PDF</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="item in paginatedWiki" :key="item.ID">
+          <tr>
+            <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="item.ID"></span></td>
+            <td>
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0"><i class="fas fa-file-lines text-emerald-600 text-[10px]"></i></div>
+                <span class="font-black text-slate2-800" x-text="item.Title"></span>
+              </div>
+            </td>
+            <td><span class="badge badge-green" x-text="item.Category"></span></td>
+            <td class="text-center"><span class="badge badge-gray font-mono" x-text="(item.Steps_JSON||[]).length + ' langkah'"></span></td>
+            <td class="text-center">
+              <template x-if="item.PDF_Attachment">
+                <div class="flex items-center justify-center gap-2">
+                  <button @click="viewAsset('pdf',item.PDF_Attachment,item.Title)" class="btn btn-sm" style="background:#EFF6FF;color:#1E4E8C;"><i class="fas fa-file-pdf mr-1"></i>View</button>
+                  <a :href="item.PDF_Attachment" :download="'Wiki_'+item.Title+'.pdf'" class="btn btn-sm btn-ghost"><i class="fas fa-download mr-1"></i>Unduh</a>
+                </div>
+              </template>
+              <span x-show="!item.PDF_Attachment" class="text-slate2-300 text-[10px] italic">—</span>
+            </td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openWikiModal(item)" class="btn btn-ghost btn-sm">Edit</button>
+                <button @click="openDeleteConfirmation('knowledge_base',item.ID,item.Title)" class="btn btn-danger btn-sm">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="filteredWiki.length===0">
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-book-open"></i></div>
+              <p class="text-sm font-bold text-slate2-400">Belum ada artikel Wiki</p>
+              <p class="text-xs text-slate2-400">Klik "Buat Artikel Wiki" untuk memulai dokumentasi</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div x-show="wikiTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold" x-text="wikiPage"></span> dari <span class="font-bold" x-text="wikiTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredWiki.length"></span> artikel</p>
+      <div class="flex items-center gap-1">
+        <button @click="wikiPage=1" :disabled="wikiPage===1" class="btn btn-ghost btn-icon-sm" :class="wikiPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="wikiPage--" :disabled="wikiPage===1" class="btn btn-ghost btn-icon-sm" :class="wikiPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:wikiTotalPages},(_,i)=>i+1).filter(p=>p===1||p===wikiTotalPages||Math.abs(p-wikiPage)<=1)" :key="p">
+          <button @click="wikiPage=p" :class="p===wikiPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="wikiPage++" :disabled="wikiPage===wikiTotalPages" class="btn btn-ghost btn-icon-sm" :class="wikiPage===wikiTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="wikiPage=wikiTotalPages" :disabled="wikiPage===wikiTotalPages" class="btn btn-ghost btn-icon-sm" :class="wikiPage===wikiTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,751 @@
+<!-- ═══ MODAL: Create / Edit Incident ═══ -->
+<div x-show="showCreateModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-lg" @click.outside="showCreateModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon bg-royal-50 text-royal-600"><i class="fas fa-triangle-exclamation"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Incident Management</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formCreate.id?'Edit Incident':'Buat Laporan Insiden'"></h3>
+        </div>
+      </div>
+      <button @click="showCreateModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Tanggal</label>
+          <input type="date" x-model="formCreate.date" :disabled="formCreate.isToday&&!formCreate.id" class="form-input">
+        </div>
+        <div class="flex items-end pb-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" x-model="formCreate.isToday" @change="if(formCreate.isToday)setTodayDate()" class="w-4 h-4 accent-royal-600">
+            <span class="text-xs font-semibold text-slate2-600">Gunakan Hari Ini</span>
+          </label>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Lokasi <span class="text-red-500">*</span></label>
+          <select x-model="formCreate.location" required class="form-input cursor-pointer">
+            <option value="">Pilih Lokasi</option>
+            <template x-for="l in masterData.locations" :key="l.ID"><option :value="l['Location Name']" x-text="l['Location Name']"></option></template>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Kategori <span class="text-red-500">*</span></label>
+          <select x-model="formCreate.category" required class="form-input cursor-pointer">
+            <option value="">Pilih Kategori</option>
+            <template x-for="c in masterData.categories" :key="c.ID"><option :value="c['Category Name']" x-text="c['Category Name']"></option></template>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Deskripsi <span class="text-red-500">*</span></label>
+        <textarea x-model="formCreate.description" required rows="3" placeholder="Jelaskan kendala yang terjadi..." class="form-input" style="resize:none;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showCreateModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitCreateForm()" class="btn btn-primary" x-text="formCreate.id?'Simpan Perubahan':'Kirim Laporan'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Close Incident ═══ -->
+<div x-show="showCloseModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-sm" @click.outside="showCloseModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon bg-emerald-50 text-emerald-600"><i class="fas fa-circle-check"></i></div>
+        <h3 class="text-xs font-black text-slate2-800">Selesaikan Penanganan</h3>
+      </div>
+      <button @click="showCloseModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="text-xs text-slate2-500">Konfirmasi bahwa insiden
+        <span class="font-black text-royal-700" x-text="formClose.id"></span>
+        telah selesai ditangani dan ubah status menjadi <span class="badge badge-green">Closed</span>.</p>
+    </div>
+    <div class="modal-footer">
+      <button @click="showCloseModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitCloseForm()" class="btn" style="background:#059669;color:#fff;">Konfirmasi Selesai</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: VLAN ═══ -->
+<div x-show="showVlanModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-xl" @click.outside="showVlanModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon bg-royal-50 text-royal-600"><i class="fas fa-network-wired"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Network Infrastructure</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formVlan.id?'Edit VLAN':'Deploy VLAN Baru'"></h3>
+        </div>
+      </div>
+      <button @click="showVlanModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="form-label">VLAN ID <span class="text-red-500">*</span></label><input type="number" x-model="formVlan.vlanId" required placeholder="100" class="form-input font-mono"></div>
+        <div><label class="form-label">Nama VLAN <span class="text-red-500">*</span></label><input type="text" x-model="formVlan.name" required placeholder="VLAN_PROD" class="form-input font-mono"></div>
+        <div><label class="form-label">Network / Subnet <span class="text-red-500">*</span></label><input type="text" x-model="formVlan.network" required placeholder="192.168.10.0/24" class="form-input font-mono"></div>
+        <div><label class="form-label">Gateway <span class="text-red-500">*</span></label><input type="text" x-model="formVlan.gateway" required placeholder="192.168.10.1" class="form-input font-mono"></div>
+        <div>
+          <label class="form-label">Lokasi <span class="text-red-500">*</span></label>
+          <select x-model="formVlan.location" required class="form-input cursor-pointer">
+            <option value="">Pilih Lokasi</option>
+            <template x-for="l in masterData.locations" :key="l.ID"><option :value="l['Location Name']" x-text="l['Location Name']"></option></template>
+          </select>
+        </div>
+        <div><label class="form-label">Switch Target <span class="text-red-500">*</span></label><input type="text" x-model="formVlan.switchName" required placeholder="SW-CORE-01" class="form-input"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showVlanModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitVlanForm()" class="btn btn-primary" x-text="formVlan.id?'Simpan Perubahan':'Deploy VLAN'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Master Data (Location/Category) ═══ -->
+<div x-show="showMasterModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-sm" @click.outside="showMasterModal=false">
+    <div class="modal-header">
+      <h3 class="text-xs font-black text-slate2-800" x-text="(formMaster.idField?'Edit ':'Tambah ') + formMaster.targetSheet"></h3>
+      <button @click="showMasterModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div><label class="form-label">Nama Entitas</label><input type="text" x-model="formMaster.valueField" required class="form-input"></div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showMasterModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitMasterForm()" class="btn btn-primary">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: KPI Project ═══ -->
+<div x-show="showKpiProjectModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-lg" @click.outside="showKpiProjectModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon" style="background:#EDE9FE;color:#6D28D9;"><i class="fas fa-rocket"></i></div>
+        <h3 class="text-xs font-black text-slate2-800" x-text="formKpiProject.id?'Edit Project':'Record KPI Project'"></h3>
+      </div>
+      <button @click="showKpiProjectModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div><label class="form-label">Tanggal</label><input type="date" x-model="formKpiProject.date" required class="form-input"></div>
+      <div><label class="form-label">Nama Project <span class="text-red-500">*</span></label><input type="text" x-model="formKpiProject.projectName" required placeholder="Nama project delivery..." class="form-input"></div>
+      <div>
+        <label class="form-label">Lokasi <span class="text-red-500">*</span></label>
+        <select x-model="formKpiProject.location" required class="form-input cursor-pointer">
+          <option value="">Pilih Lokasi</option>
+          <template x-for="l in masterData.locations" :key="l.ID"><option :value="l['Location Name']" x-text="l['Location Name']"></option></template>
+        </select>
+      </div>
+      <div><label class="form-label">Deskripsi</label><textarea x-model="formKpiProject.description" rows="2" class="form-input" style="resize:none;"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showKpiProjectModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitKpiProjectForm()" class="btn" style="background:#7C3AED;color:#fff;" x-text="formKpiProject.id?'Simpan Perubahan':'Record Project'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: KPI Training ═══ -->
+<div x-show="showKpiTrainingModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-lg" @click.outside="showKpiTrainingModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon" style="background:#FCE7F3;color:#9D174D;"><i class="fas fa-chalkboard-user"></i></div>
+        <h3 class="text-xs font-black text-slate2-800" x-text="formKpiTraining.id?'Edit Training':'Record Training'"></h3>
+      </div>
+      <button @click="showKpiTrainingModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="form-label">Tanggal</label><input type="date" x-model="formKpiTraining.date" required class="form-input"></div>
+        <div>
+          <label class="form-label">Metode <span class="text-red-500">*</span></label>
+          <select x-model="formKpiTraining.method" required class="form-input cursor-pointer font-bold">
+            <option value="Offline">Offline</option><option value="Online">Online</option>
+          </select>
+        </div>
+      </div>
+      <div><label class="form-label">Judul Training <span class="text-red-500">*</span></label><input type="text" x-model="formKpiTraining.title" required placeholder="Judul sesi training..." class="form-input"></div>
+      <div><label class="form-label">Topik</label><input type="text" x-model="formKpiTraining.topic" placeholder="Topik utama..." class="form-input"></div>
+      <div>
+        <label class="form-label">Lokasi <span class="text-red-500">*</span></label>
+        <select x-model="formKpiTraining.location" required class="form-input cursor-pointer">
+          <option value="">Pilih Lokasi</option>
+          <template x-for="l in masterData.locations" :key="l.ID"><option :value="l['Location Name']" x-text="l['Location Name']"></option></template>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showKpiTrainingModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitKpiTrainingForm()" class="btn" style="background:#DB2777;color:#fff;" x-text="formKpiTraining.id?'Simpan Perubahan':'Record Training'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Master Item ═══ -->
+<div x-show="showItemModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-lg" @click.outside="showItemModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon bg-accent-100 text-accent-500"><i class="fas fa-boxes-stacked"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Master Item</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formItem.id?'Edit Data Item':'Tambah Item Baru'"></h3>
+        </div>
+      </div>
+      <button @click="showItemModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div><label class="form-label">Nama Item <span class="text-red-500">*</span></label><input type="text" x-model="formItem.itemName" required placeholder="Contoh: Switch Cisco Catalyst 2960" class="form-input font-semibold"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Kategori</label>
+          <select x-model="formItem.category" class="form-input cursor-pointer">
+            <option value="">-- Pilih --</option>
+            <template x-for="c in masterData.categories" :key="c.ID"><option :value="c['Category Name']" x-text="c['Category Name']"></option></template>
+          </select>
+        </div>
+        <div><label class="form-label">Brand / Merek</label><input type="text" x-model="formItem.brand" placeholder="Cisco, HP, Dell..." class="form-input"></div>
+        <div><label class="form-label">Serial Number</label><input type="text" x-model="formItem.serialNumber" placeholder="S/N perangkat" class="form-input font-mono"></div>
+        <div><label class="form-label">Est. Harga (Rp)</label><input type="number" x-model="formItem.estPrice" placeholder="0" min="0" class="form-input font-mono"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showItemModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitItemForm()" class="btn btn-accent" x-text="formItem.id?'Simpan Perubahan':'Tambah Item'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Password Vault ═══ -->
+<div x-show="showPasswordModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-xl overflow-y-auto max-h-[90vh]" @click.outside="showPasswordModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon" style="background:#CCFBF1;color:#0D9488;"><i class="fas fa-vault"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Security Vault</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formPassword.id?'Edit Credential':'Tambah Credential Baru'"></h3>
+        </div>
+      </div>
+      <button @click="showPasswordModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2 sm:col-span-1"><label class="form-label">App / System Name <span class="text-red-500">*</span></label><input type="text" x-model="formPassword.appName" required placeholder="Mikrotik RouterOS" class="form-input font-semibold"></div>
+        <div class="col-span-2 sm:col-span-1"><label class="form-label">URL / IP Address</label><input type="text" x-model="formPassword.url" placeholder="https:// atau 192.168.x.x" class="form-input font-mono"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="form-label">Username / Email</label><input type="text" x-model="formPassword.username" placeholder="admin" class="form-input font-mono"></div>
+        <div>
+          <label class="form-label">Password <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <input :type="showPwInForm?'text':'password'" x-model="formPassword.password" required placeholder="••••••••" class="form-input font-mono pr-10">
+            <button type="button" @click="showPwInForm=!showPwInForm" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate2-400 hover:text-slate2-700">
+              <i :class="showPwInForm?'fas fa-eye-slash':'fas fa-eye'" class="text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Kategori</label>
+          <select x-model="formPassword.category" class="form-input cursor-pointer">
+            <option value="">-- Pilih --</option>
+            <template x-for="c in masterData.categories" :key="c.ID"><option :value="c['Category Name']" x-text="c['Category Name']"></option></template>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Lokasi</label>
+          <select x-model="formPassword.location" class="form-input cursor-pointer">
+            <option value="">-- Pilih --</option>
+            <template x-for="l in masterData.locations" :key="l.ID"><option :value="l['Location Name']" x-text="l['Location Name']"></option></template>
+          </select>
+        </div>
+      </div>
+      <div><label class="form-label">Notes / Keterangan</label><textarea x-model="formPassword.notes" rows="2" placeholder="Informasi tambahan..." class="form-input" style="resize:none;"></textarea></div>
+      <div class="flex items-center gap-3 p-3 bg-slate2-50 rounded-xl border border-slate2-100">
+        <label class="toggle-track shrink-0"><input type="checkbox" x-model="formPassword.isActive"><span class="toggle-slider"></span></label>
+        <div>
+          <p class="text-xs font-bold text-slate2-700">Status Aktif</p>
+          <p class="text-[10px] text-slate2-400" x-text="formPassword.isActive?'Credential ini aktif digunakan':'Credential dinonaktifkan'"></p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showPasswordModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitPasswordForm()" class="btn" style="background:#0D9488;color:#fff;" x-text="formPassword.id?'Simpan Perubahan':'Simpan Credential'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Wiki (Full Screen) ═══ -->
+<div x-show="showWikiModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-royal-950/80 backdrop-blur-sm" x-transition.opacity>
+  <div class="bg-slate2-50 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl relative flex flex-col" style="height:92vh;">
+    <div class="p-5 border-b border-slate2-200 flex justify-between items-center bg-white">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center"><i class="fas fa-book-open-reader text-emerald-600"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Wiki Knowledge Base</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formWiki.id?'Edit Artikel Wiki':'Buat Artikel Baru'"></h3>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="submitWikiForm()" class="btn" style="background:#059669;color:#fff;"><i class="fas fa-save mr-1.5"></i>Simpan Artikel</button>
+        <button @click="showWikiModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
+      <!-- Left panel -->
+      <div class="w-full md:w-72 bg-white border-r border-slate2-200 p-5 overflow-y-auto shrink-0 space-y-5">
+        <div class="space-y-3">
+          <h4 class="text-[9px] font-black tracking-widest text-slate2-400 uppercase">Klasifikasi Dokumen</h4>
+          <div><label class="form-label">Judul SOP / Panduan <span class="text-red-500">*</span></label><input type="text" x-model="formWiki.title" required placeholder="SOP Setting AP Aruba..." class="form-input font-semibold"></div>
+          <div>
+            <label class="form-label">Kategori</label>
+            <select x-model="formWiki.category" required class="form-input cursor-pointer">
+              <option value="Troubleshooting">Troubleshooting</option>
+              <option value="Network Config">Network Configuration</option>
+              <option value="Server Administration">Server Administration</option>
+              <option value="Hardware Guide">Hardware Installation Guide</option>
+            </select>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-slate2-100">
+          <h4 class="text-[9px] font-black tracking-widest text-slate2-400 uppercase mb-3">Lampiran PDF</h4>
+          <div class="border-2 border-dashed border-slate2-200 rounded-xl h-24 flex flex-col items-center justify-center relative group cursor-pointer hover:border-royal-400 hover:bg-royal-50/30 transition">
+            <input type="file" accept="application/pdf" @change="handlePdfUpload($event);$event.target.value=''" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+            <template x-if="!formWiki.pdf">
+              <div class="text-center text-slate2-400 group-hover:text-royal-500 transition">
+                <i class="fas fa-file-pdf text-2xl mb-1 block"></i>
+                <span class="text-[9px] font-black uppercase block">Attach PDF</span>
+                <span class="text-[9px] text-slate2-400 mt-0.5 block">Maks. 2 MB</span>
+              </div>
+            </template>
+            <template x-if="formWiki.pdf">
+              <div class="flex flex-col items-center text-emerald-700 font-bold text-xs relative z-20">
+                <i class="fas fa-circle-check text-2xl mb-1 text-emerald-500"></i>
+                <span>PDF Terlampir</span>
+                <button type="button" @click.stop="formWiki.pdf=''" class="mt-1.5 text-[9px] bg-red-100 text-red-600 px-3 py-1 rounded-full hover:bg-red-200 transition"><i class="fas fa-trash mr-1"></i>Hapus</button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+      <!-- Right panel: Steps -->
+      <div class="flex-1 bg-white p-6 overflow-y-auto">
+        <div class="wiki-timeline relative space-y-6">
+          <template x-for="(step, idx) in formWiki.steps" :key="idx">
+            <div class="relative z-10 flex gap-5 items-start">
+              <div class="w-9 h-9 rounded-full bg-royal-600 text-white font-black flex items-center justify-center shrink-0 border-4 border-white text-xs shadow-blue" x-text="idx+1"></div>
+              <div class="flex-1 card p-4 relative group hover:border-royal-300 transition">
+                <button type="button" @click="formWiki.steps.splice(idx,1)" class="absolute -top-3 -right-3 w-6 h-6 bg-white border border-red-200 text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-card hover:bg-red-500 hover:text-white"><i class="fas fa-times text-[9px]"></i></button>
+                <textarea x-model="step.text" rows="2" placeholder="Ketik instruksi langkah teknis di sini..." class="w-full bg-transparent text-xs font-semibold text-slate2-700 focus:outline-none placeholder-slate2-300" style="resize:none;"></textarea>
+                <div class="flex items-center gap-4 mt-3 pt-3 border-t border-slate2-100">
+                  <div class="relative w-24 h-16 rounded-xl border-2 border-dashed border-slate2-200 flex items-center justify-center overflow-hidden hover:border-royal-400 transition shrink-0 cursor-pointer">
+                    <input type="file" accept="image/*" @change="handleStepImageUpload($event,idx);$event.target.value=''" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                    <template x-if="step.image"><img :src="step.image" class="w-full h-full object-cover rounded-xl"></template>
+                    <template x-if="!step.image"><div class="text-center text-slate2-300"><i class="fas fa-camera text-sm mb-0.5 block"></i><span class="text-[8px] font-black uppercase">Gambar</span></div></template>
+                  </div>
+                  <p class="text-[10px] text-slate2-400 italic">Upload screenshot pendukung langkah <span x-text="idx+1"></span></p>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div class="relative z-10 flex gap-5 items-center">
+            <div class="w-9 h-9 rounded-full bg-slate2-100 text-slate2-400 flex items-center justify-center shrink-0 border border-slate2-200"><i class="fas fa-plus text-xs"></i></div>
+            <button type="button" @click="formWiki.steps.push({text:'',image:''})" class="text-[11px] font-black text-royal-600 hover:text-royal-800 uppercase tracking-widest transition">+ Tambah Langkah</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Rack Visualizer (Full Screen) ═══ -->
+<div x-show="showRackModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-royal-950/90 backdrop-blur-sm" x-transition.opacity>
+  <div class="w-full max-w-6xl overflow-hidden shadow-2xl relative flex flex-col rounded-2xl" style="height:92vh;background:#F8FAFC;">
+    <div class="p-5 border-b border-slate2-200 flex justify-between items-center bg-white">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-royal-50 flex items-center justify-center"><i class="fas fa-server text-royal-600"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Infrastructure</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formRack.id?'Rack Topology Visualizer':'Registrasi Rack Server'"></h3>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="submitRackForm()" class="btn btn-primary"><i class="fas fa-save mr-1.5"></i>Simpan Arsitektur</button>
+        <button @click="showRackModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
+      <!-- Config panel -->
+      <div class="w-full md:w-72 bg-white border-r border-slate2-200 p-5 overflow-y-auto shrink-0 space-y-4">
+        <div class="space-y-3">
+          <div><label class="form-label">Nama / Label Rack <span class="text-red-500">*</span></label><input type="text" x-model="formRack.name" class="form-input font-semibold" placeholder="RACK-01-MAIN"></div>
+          <div>
+            <label class="form-label">Penempatan Area <span class="text-red-500">*</span></label>
+            <select x-model="formRack.location" class="form-input cursor-pointer">
+              <option value="">Pilih Lokasi</option>
+              <template x-for="l in masterData.locations" :key="l.ID"><option :value="l['Location Name']" x-text="l['Location Name']"></option></template>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Kapasitas Maksimal (U)</label>
+            <select x-model="formRack.size" class="form-input cursor-pointer font-mono font-black text-royal-600">
+              <option value="12">12 U</option><option value="15">15 U</option><option value="32">32 U</option><option value="42">42 U</option>
+            </select>
+          </div>
+        </div>
+        <div class="pt-4 border-t border-slate2-100">
+          <h4 class="text-[9px] font-black tracking-widest text-slate2-400 uppercase mb-3">Foto Rack</h4>
+          <div class="grid grid-cols-2 gap-2">
+            <template x-for="(pic,idx) in formRack.photos" :key="idx">
+              <div class="relative rounded-xl overflow-hidden h-20 group cursor-pointer" @click="viewAsset('image',pic,formRack.name||'Foto Rack')">
+                <img :src="pic" class="w-full h-full object-cover transition group-hover:scale-105">
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                  <i class="fas fa-expand text-white text-sm opacity-0 group-hover:opacity-100 transition drop-shadow"></i>
+                </div>
+                <button type="button" @click.stop="formRack.photos.splice(idx,1)" class="absolute top-1 right-1 w-5 h-5 bg-black/70 text-white rounded-full text-[9px] opacity-0 group-hover:opacity-100 flex items-center justify-center hover:bg-red-500 transition z-10"><i class="fas fa-trash"></i></button>
+              </div>
+            </template>
+            <div x-show="formRack.photos.length<4" class="relative border-2 border-dashed border-slate2-200 rounded-xl h-20 flex flex-col items-center justify-center text-slate2-400 hover:bg-royal-50 hover:border-royal-400 cursor-pointer transition">
+              <input type="file" accept="image/*" @change="handleMultiplePhotoUpload($event,formRack.photos);$event.target.value=''" class="absolute inset-0 opacity-0 cursor-pointer">
+              <i class="fas fa-plus mb-1"></i><span class="text-[9px] font-black uppercase">Add</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Rack visualizer -->
+      <div class="flex-1 flex flex-col items-center justify-start overflow-y-auto p-6" style="background:linear-gradient(180deg,#0D1B2A,#081428);">
+        <div class="w-full max-w-md rack-chassis p-4 shadow-2xl">
+          <div class="flex justify-between items-center mb-3 px-1">
+            <div class="flex gap-1"><div class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div><div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div><div class="w-2.5 h-2.5 rounded-full bg-red-500"></div></div>
+            <span class="text-[9px] font-black text-slate2-500 tracking-widest uppercase" x-text="'CHASSIS · MAX: '+formRack.size+'U'"></span>
+            <div class="w-8 h-2 rounded bg-slate2-800 border border-slate2-700"></div>
+          </div>
+          <div class="space-y-0.5">
+            <template x-for="i in parseInt(formRack.size)">
+              <div x-data="{uSlot: parseInt(formRack.size)-i+1}" @click="openUModal(uSlot)" class="rack-slot h-10 flex items-center px-3" :class="formRack.devices[uSlot]&&formRack.devices[uSlot].name?'filled':'empty'">
+                <span class="w-8 text-center text-[10px] font-mono font-black border-r border-slate2-700/50 mr-3 pr-2 shrink-0" :class="formRack.devices[uSlot]&&formRack.devices[uSlot].name?'text-royal-300':'text-slate2-600'" x-text="uSlot+'U'"></span>
+                <div class="flex-1 flex items-center text-[11px] overflow-hidden">
+                  <template x-if="formRack.devices[uSlot]&&formRack.devices[uSlot].name">
+                    <div class="flex items-center gap-2 w-full">
+                      <i class="text-slate2-400 shrink-0" :class="getDeviceIcon(formRack.devices[uSlot].type)" style="font-size:10px;"></i>
+                      <span class="font-bold text-slate2-200 truncate" x-text="formRack.devices[uSlot].name"></span>
+                      <span class="ml-auto badge badge-blue shrink-0" style="font-size:8px;" x-text="formRack.devices[uSlot].type"></span>
+                    </div>
+                  </template>
+                  <template x-if="!formRack.devices[uSlot]||!formRack.devices[uSlot].name">
+                    <span class="text-slate2-600 italic text-[10px]">+ Klik untuk isi slot</span>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: U Slot Config ═══ -->
+<div x-show="showUModal" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-royal-950/70 backdrop-blur-sm" x-transition.opacity>
+  <div class="modal-box max-w-sm" @click.outside="showUModal=false">
+    <div class="modal-header">
+      <h3 class="text-xs font-black text-slate2-800">Config Slot <span class="text-royal-600 font-mono" x-text="currentUEdit+'U'"></span></h3>
+      <button @click="showUModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div><label class="form-label">Nama / Label Unit</label><input type="text" x-model="formU.name" placeholder="Kosongkan untuk mengosongkan slot" class="form-input"></div>
+      <div>
+        <label class="form-label">Tipe Hardware</label>
+        <select x-model="formU.type" class="form-input cursor-pointer">
+          <option value="Server">Server</option><option value="Switch">Switch</option>
+          <option value="Router">Router / Firewall</option><option value="UPS">UPS</option>
+          <option value="Storage">Storage / NAS</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showUModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="saveUSlot()" class="btn btn-primary">Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Office License ═══ -->
+<div x-show="showLicenseModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-2xl overflow-y-auto max-h-[92vh]" @click.outside="showLicenseModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon" style="background:#DBEAFE;color:#1d4ed8;"><i class="fas fa-id-card"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Office 2024 License</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formLicense.id?'Edit Lisensi':'Daftarkan Lisensi Baru'"></h3>
+        </div>
+      </div>
+      <button @click="showLicenseModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-5">
+      <div>
+        <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-3 pb-1 border-b border-slate2-100">Informasi Produk</p>
+        <div class="grid grid-cols-3 gap-3">
+          <div><label class="form-label">Part Number</label><input type="text" x-model="formLicense.partNumber" placeholder="79G-05388" class="form-input font-mono"></div>
+          <div>
+            <label class="form-label">Product Name <span class="text-red-500">*</span></label>
+            <select x-model="formLicense.productName" required class="form-input cursor-pointer" @change="syncLicenseProduct()">
+              <option value="">-- Pilih dari Master Item --</option>
+              <template x-for="it in masterItems" :key="it.ID"><option :value="it['Item Name']" x-text="it['Item Name']"></option></template>
+              <option value="__manual__">✏️ Input Manual...</option>
+            </select>
+            <input x-show="formLicense.productName==='__manual__'" type="text" x-model="formLicense.productNameManual" placeholder="Nama produk manual..." class="form-input mt-1.5">
+          </div>
+          <div><label class="form-label">Qty</label><input type="number" x-model="formLicense.qty" min="1" placeholder="1" class="form-input font-mono text-center"></div>
+        </div>
+      </div>
+      <div>
+        <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-3 pb-1 border-b border-slate2-100">Kunci Lisensi</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="form-label">Product Key</label>
+            <div class="relative">
+              <input :type="showProdKey?'text':'password'" x-model="formLicense.productKey" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" class="form-input font-mono pr-10">
+              <button type="button" @click="showProdKey=!showProdKey" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate2-400 hover:text-slate2-700"><i :class="showProdKey?'fas fa-eye-slash':'fas fa-eye'" class="text-xs"></i></button>
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Unique Key <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <input :type="showUniqueKey?'text':'password'" x-model="formLicense.uniqueKey" required placeholder="Generated unique key..." class="form-input font-mono pr-10">
+              <button type="button" @click="showUniqueKey=!showUniqueKey" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate2-400 hover:text-slate2-700"><i :class="showUniqueKey?'fas fa-eye-slash':'fas fa-eye'" class="text-xs"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-3 pb-1 border-b border-slate2-100">Informasi Aktivasi</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="form-label">Tanggal Aktivasi</label><input type="date" x-model="formLicense.activationDate" class="form-input"></div>
+          <div><label class="form-label">Hostname / Computer Name</label><input type="text" x-model="formLicense.hostname" placeholder="PC-ACCOUNTING-01" class="form-input font-mono"></div>
+        </div>
+      </div>
+      <div>
+        <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-3 pb-1 border-b border-slate2-100">Pengguna & Perangkat</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="form-label">User</label>
+            <select x-model="formLicense.user" class="form-input cursor-pointer">
+              <option value="">-- Pilih User --</option>
+              <template x-for="u in masterUsers" :key="u.ID"><option :value="u['Full Name']" x-text="u['Full Name'] + (u.Department ? ' · ' + u.Department : '')"></option></template>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Merk &amp; Type Laptop</label>
+            <select x-model="formLicense.laptopBrandType" @change="syncLicenseItem()" class="form-input cursor-pointer">
+              <option value="">-- Pilih dari Master Item --</option>
+              <template x-for="it in masterItems" :key="it.ID"><option :value="(it.Brand?it.Brand+' ':'')+it['Item Name']" x-text="(it.Brand?it.Brand+' ':'')+it['Item Name']+(it['Serial Number']?' ['+it['Serial Number']+']':'')"></option></template>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div><label class="form-label">Akun Admin</label><input type="text" x-model="formLicense.akunAdmin" placeholder="admin@domain.com atau administrator" class="form-input font-mono"></div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showLicenseModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitLicenseForm()" class="btn" style="background:#1d4ed8;color:#fff;" x-text="formLicense.id?'Simpan Perubahan':'Daftarkan Lisensi'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Master User ═══ -->
+<div x-show="showUserModal" x-cloak class="modal-backdrop" x-transition.opacity>
+  <div class="modal-box max-w-lg" @click.outside="showUserModal=false">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div class="modal-icon bg-royal-50 text-royal-600"><i class="fas fa-user-gear"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Master Data</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formUser.id?'Edit Data User':'Tambah User Baru'"></h3>
+        </div>
+      </div>
+      <button @click="showUserModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body space-y-4">
+      <div><label class="form-label">Nama Lengkap <span class="text-red-500">*</span></label><input type="text" x-model="formUser.fullName" required placeholder="Budi Santoso" class="form-input font-semibold"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="form-label">Departemen</label><input type="text" x-model="formUser.department" placeholder="Finance, IT, HRD..." class="form-input"></div>
+        <div><label class="form-label">No. Telpon</label><input type="text" x-model="formUser.phone" placeholder="08xx-xxxx-xxxx" class="form-input font-mono"></div>
+      </div>
+      <div><label class="form-label">Email</label><input type="email" x-model="formUser.email" placeholder="budi@perusahaan.com" class="form-input font-mono"></div>
+    </div>
+    <div class="modal-footer">
+      <button @click="showUserModal=false" class="btn btn-ghost">Batal</button>
+      <button @click="submitUserForm()" class="btn btn-primary" x-text="formUser.id?'Simpan Perubahan':'Tambah User'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Checklist Form (Full Screen) ═══ -->
+<div x-show="showChecklistModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-royal-950/85 backdrop-blur-sm" x-transition.opacity>
+  <div class="bg-slate2-50 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl relative flex flex-col" style="height:92vh;">
+    <div class="p-5 border-b border-slate2-200 flex justify-between items-center bg-white shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#DCFCE7;"><i class="fas fa-clipboard-check" style="color:#15803d;"></i></div>
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Audit & Compliance</p>
+          <h3 class="text-xs font-black text-slate2-800" x-text="formChecklist.id?'Edit Form Checklist':'Buat Form Checklist Baru'"></h3>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="submitChecklistForm()" class="btn" style="background:#15803d;color:#fff;"><i class="fas fa-save mr-1.5"></i>Simpan Form</button>
+        <button @click="showChecklistModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    <div class="flex-1 overflow-y-auto p-6 space-y-5">
+      <!-- Form Header -->
+      <div class="card p-5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-3 pb-2 border-b border-slate2-100">Informasi Form</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="form-label">ID Form (auto)</label>
+            <input type="text" :value="formChecklist.id?formChecklist.formCode:'AKR-XXX-NT-### (otomatis)'" disabled class="form-input font-mono bg-slate2-100 text-slate2-400">
+          </div>
+          <div><label class="form-label">Judul Form <span class="text-red-500">*</span></label><input type="text" x-model="formChecklist.judul" required placeholder="FORM CHECKLIST PERANGKAT IT" class="form-input font-bold uppercase"></div>
+          <div><label class="form-label">Tanggal <span class="text-red-500">*</span></label><input type="date" x-model="formChecklist.tanggal" required class="form-input"></div>
+        </div>
+        <div class="mt-4">
+          <label class="form-label">Site <span class="text-red-500">*</span></label>
+          <select x-model="formChecklist.site" required class="form-input cursor-pointer max-w-sm">
+            <option value="">-- Pilih Site / Lokasi --</option>
+            <template x-for="l in masterData.locations" :key="l.ID"><option :value="l['Location Name']" x-text="l['Location Name']"></option></template>
+          </select>
+        </div>
+      </div>
+      <!-- Checklist Table -->
+      <div class="card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate2-100 flex items-center justify-between">
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Parameter Pemeriksaan</p>
+          <button type="button" @click="addChecklistCategory()" class="btn btn-sm" style="background:#15803d;color:#fff;"><i class="fas fa-folder-plus mr-1"></i>Tambah Kategori</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left" style="font-size:11px;">
+            <thead>
+              <tr style="background:#2B6CB0;">
+                <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide" style="width:160px;">Kategori Pemeriksaan</th>
+                <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide" style="width:120px;">Parameter</th>
+                <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide" style="width:140px;">Standar Limit</th>
+                <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide">Potensi Resiko</th>
+                <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide text-center" style="width:90px;">Frekuensi</th>
+                <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide text-center" style="width:110px;">Status</th>
+                <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide" style="width:160px;">Keterangan</th>
+                <th class="px-3 py-3 text-white font-black text-[10px] uppercase tracking-wide text-center" style="width:50px;">—</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(cat, catIdx) in formChecklist.items" :key="catIdx">
+                <template x-for="(row, rowIdx) in cat.rows" :key="rowIdx">
+                  <tr class="border-b border-slate2-100 hover:bg-royal-50/30 group">
+                    <td class="px-3 py-2 align-top">
+                      <template x-if="rowIdx===0">
+                        <div class="space-y-1.5">
+                          <textarea x-model="cat.categoryName" rows="2" placeholder="Nama Kategori..." class="w-full bg-royal-50 border border-royal-100 rounded-lg px-2 py-1.5 text-[11px] font-black uppercase focus:outline-none focus:border-royal-400 resize-none" style="color:#1A3A66;"></textarea>
+                          <button type="button" @click="addChecklistRow(catIdx)" class="text-[9px] font-bold flex items-center gap-1 hover:underline" style="color:#15803d;"><i class="fas fa-plus"></i>Tambah Parameter</button>
+                          <button type="button" x-show="formChecklist.items.length>1" @click="removeChecklistCategory(catIdx)" class="text-[9px] font-bold text-red-400 hover:text-red-600 flex items-center gap-1"><i class="fas fa-trash"></i>Hapus Kategori</button>
+                        </div>
+                      </template>
+                    </td>
+                    <td class="px-3 py-2 align-top"><textarea x-model="row.parameter" rows="2" placeholder="Parameter..." class="w-full bg-transparent text-[11px] font-bold focus:outline-none resize-none border border-transparent hover:border-slate2-200 rounded px-1"></textarea></td>
+                    <td class="px-3 py-2 align-top"><textarea x-model="row.standarLimit" rows="2" placeholder="Standar limit..." class="w-full bg-transparent text-[11px] focus:outline-none resize-none border border-transparent hover:border-slate2-200 rounded px-1"></textarea></td>
+                    <td class="px-3 py-2 align-top"><textarea x-model="row.potensiResiko" rows="2" placeholder="Potensi resiko..." class="w-full bg-transparent text-[11px] focus:outline-none resize-none border border-transparent hover:border-slate2-200 rounded px-1" style="color:#1d4ed8;"></textarea></td>
+                    <td class="px-3 py-2 align-top text-center">
+                      <select x-model="row.frekuensi" class="w-full bg-transparent text-[10px] font-bold uppercase focus:outline-none border border-transparent hover:border-slate2-200 rounded px-1 cursor-pointer text-center">
+                        <option value="HARIAN">HARIAN</option><option value="MINGGUAN">MINGGUAN</option>
+                        <option value="BULANAN">BULANAN</option><option value="TAHUNAN">TAHUNAN</option>
+                      </select>
+                    </td>
+                    <td class="px-3 py-2 align-top text-center">
+                      <select x-model="row.statusBaik" class="w-full text-[10px] font-black uppercase focus:outline-none rounded-lg px-1 py-1 cursor-pointer text-center border"
+                        :class="row.statusBaik==='Baik'?'bg-emerald-50 text-emerald-700 border-emerald-200':(row.statusBaik==='Tidak Baik'?'bg-red-50 text-red-600 border-red-200':'bg-slate2-50 text-slate2-400 border-slate2-200')">
+                        <option value="">— Pilih —</option>
+                        <option value="Baik">Baik</option><option value="Tidak Baik">Tidak Baik</option>
+                      </select>
+                    </td>
+                    <td class="px-3 py-2 align-top"><textarea x-model="row.keterangan" rows="2" placeholder="Keterangan..." class="w-full bg-transparent text-[11px] focus:outline-none resize-none border border-transparent hover:border-slate2-200 rounded px-1"></textarea></td>
+                    <td class="px-3 py-2 align-top text-center">
+                      <button type="button" x-show="cat.rows.length>1" @click="removeChecklistRow(catIdx,rowIdx)" class="w-6 h-6 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center opacity-0 group-hover:opacity-100"><i class="fas fa-times text-[10px]"></i></button>
+                    </td>
+                  </tr>
+                </template>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div x-show="formChecklist.items.length===0" class="p-8 text-center">
+          <p class="text-xs text-slate2-400 mb-3">Belum ada kategori pemeriksaan.</p>
+          <button type="button" @click="addChecklistCategory()" class="btn btn-primary btn-sm"><i class="fas fa-plus mr-1"></i>Tambah Kategori Pertama</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Delete Confirmation ═══ -->
+<div x-show="showDeleteModal" x-cloak class="modal-backdrop" style="z-index:65;" x-transition.opacity>
+  <div class="modal-box max-w-xs" @click.outside="showDeleteModal=false">
+    <div class="modal-body text-center space-y-4 py-6">
+      <div class="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto"><i class="fas fa-trash-can text-red-500 text-xl"></i></div>
+      <div>
+        <h4 class="text-sm font-black text-slate2-800">Konfirmasi Hapus</h4>
+        <p class="text-xs text-slate2-500 mt-1">Hapus data <span class="font-black text-slate2-800" x-text="deleteQueue.name"></span>? Data akan diarsip (soft delete).</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button @click="showDeleteModal=false" class="btn btn-ghost justify-center">Batal</button>
+        <button @click="executeDeleteRecord()" class="btn btn-danger justify-center border-none" style="background:#DC2626;color:#fff;">Hapus</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Asset Viewer ═══ -->
+<div x-show="showViewer" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-6" style="background:rgba(8,20,40,.97);" x-transition.opacity>
+  <button @click="showViewer=false" class="absolute top-5 right-5 w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center hover:bg-red-500 transition z-10"><i class="fas fa-times"></i></button>
+  <div class="w-full h-full flex flex-col items-center justify-center max-w-5xl" @click.self="showViewer=false">
+    <template x-if="viewerType==='image'"><img :src="viewerUrl" class="max-w-full max-h-[80vh] rounded-2xl shadow-2xl object-contain"></template>
+    <template x-if="viewerType==='pdf'"><iframe :src="viewerUrl" class="w-full h-[85vh] rounded-2xl border-none bg-white shadow-2xl"></iframe></template>
+    <div class="mt-4 flex items-center gap-2">
+      <div class="w-5 h-5 rounded bg-white/10 flex items-center justify-center"><i :class="viewerType==='pdf'?'fas fa-file-pdf text-red-400':'fas fa-image text-royal-300'" class="text-[10px]"></i></div>
+      <p class="text-white/60 text-xs font-bold uppercase tracking-widest" x-text="viewerTitle"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Submit Loading ═══ -->
+<div x-show="submitLoading" x-cloak class="fixed inset-0 bg-royal-950/40 backdrop-blur-sm z-[80] flex items-center justify-center" x-transition.opacity>
+  <div class="card p-5 flex items-center gap-4 shadow-card-lg">
+    <div class="spinner"></div>
+    <span class="text-xs font-bold text-slate2-700">Sinkronisasi database...</span>
+  </div>
+</div>
+
+<!-- ═══ Toasts ═══ -->
+<div class="fixed top-5 right-5 z-[90] space-y-2 w-full max-w-sm pointer-events-none">
+  <template x-for="t in toasts" :key="t.id">
+    <div class="toast pointer-events-auto" x-transition.opacity>
+      <i class="mt-0.5 shrink-0" :class="t.type==='error'?'fas fa-triangle-exclamation text-amber-400':'fas fa-circle-check text-emerald-400'"></i>
+      <span class="flex-1 leading-relaxed" x-text="t.msg"></span>
+      <button @click="removeToast(t.id)" class="text-royal-300 hover:text-white ml-2"><i class="fas fa-times text-xs"></i></button>
+    </div>
+  </template>
+</div>

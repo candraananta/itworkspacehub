@@ -1,0 +1,171 @@
+<!-- ═══ MASTER LOCATIONS ═══ -->
+<div x-show="currentTab === 'm-location'" class="space-y-4 max-w-xl">
+  <div class="page-header">
+    <div><h2 class="page-title">Master Lokasi</h2><p class="page-subtitle">Konfigurasi data lokasi area</p></div>
+    <button @click="openMasterModal('locations')" class="btn btn-primary"><i class="fas fa-plus"></i><span>Tambah Lokasi</span></button>
+  </div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>Kode ID</th><th>Nama Lokasi</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="loc in masterData.locations" :key="loc.ID">
+          <tr>
+            <td><span class="font-mono font-black text-royal-600 text-[11px]" x-text="loc.ID"></span></td>
+            <td class="font-bold text-slate2-800" x-text="loc['Location Name']"></td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openMasterModal('locations',loc)" class="btn btn-ghost btn-sm">Edit</button>
+                <button @click="openDeleteConfirmation('locations',loc.ID,loc['Location Name'])" class="btn btn-danger btn-sm">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="masterData.locations.length===0">
+          <td colspan="3"><div class="empty-state"><div class="empty-icon"><i class="fas fa-location-dot"></i></div><p class="text-sm font-bold text-slate2-400">Belum ada lokasi</p></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ MASTER CATEGORIES ═══ -->
+<div x-show="currentTab === 'm-category'" class="space-y-4 max-w-xl">
+  <div class="page-header">
+    <div><h2 class="page-title">Master Kategori</h2><p class="page-subtitle">Konfigurasi data kategori insiden & aset</p></div>
+    <button @click="openMasterModal('categories')" class="btn btn-primary"><i class="fas fa-plus"></i><span>Tambah Kategori</span></button>
+  </div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>Kode ID</th><th>Nama Kategori</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="cat in masterData.categories" :key="cat.ID">
+          <tr>
+            <td><span class="font-mono font-black text-royal-600 text-[11px]" x-text="cat.ID"></span></td>
+            <td class="font-bold text-slate2-800" x-text="cat['Category Name']"></td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openMasterModal('categories',cat)" class="btn btn-ghost btn-sm">Edit</button>
+                <button @click="openDeleteConfirmation('categories',cat.ID,cat['Category Name'])" class="btn btn-danger btn-sm">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="masterData.categories.length===0">
+          <td colspan="3"><div class="empty-state"><div class="empty-icon"><i class="fas fa-tags"></i></div><p class="text-sm font-bold text-slate2-400">Belum ada kategori</p></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ MASTER ITEMS ═══ -->
+<div x-show="currentTab === 'm-items'" class="space-y-4">
+  <div class="page-header">
+    <div><h2 class="page-title">Master Item & Aset</h2><p class="page-subtitle">Inventaris perangkat IT & aset infrastruktur</p></div>
+    <button @click="openItemModal()" class="btn btn-accent"><i class="fas fa-plus"></i><span>Tambah Item Baru</span></button>
+  </div>
+  <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="itemSearch" @input="itemPage=1" placeholder="Cari nama item, brand, serial..." class="form-input"></div></div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>Nama Item</th><th>Kategori</th><th>Brand</th><th>Serial Number</th><th class="text-right">Est. Harga</th><th class="text-center">Status</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="it in paginatedItems" :key="it.ID">
+          <tr>
+            <td><span class="font-mono font-black text-slate2-400 text-[11px]" x-text="it.ID"></span></td>
+            <td>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-accent-100 flex items-center justify-center shrink-0">
+                  <i class="fas fa-cube text-accent-500 text-[10px]"></i>
+                </div>
+                <span class="font-black text-slate2-800" x-text="it['Item Name']"></span>
+              </div>
+            </td>
+            <td><span class="badge badge-orange" x-text="it.Category||'-'"></span></td>
+            <td class="text-slate2-600 font-medium" x-text="it.Brand||'-'"></td>
+            <td><span class="font-mono text-[11px] text-slate2-500" x-text="it['Serial Number']||'-'"></span></td>
+            <td class="text-right font-bold text-slate2-700" x-text="it.est_price?'Rp '+Number(it.est_price).toLocaleString('id-ID'):'-'"></td>
+            <td class="text-center"><span :class="it.Status==='ACTIVE'?'badge-green':'badge-gray'" class="badge" x-text="it.Status"></span></td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openItemModal(it)" class="btn btn-ghost btn-sm">Edit</button>
+                <button @click="openDeleteConfirmation('master_items',it.ID,it['Item Name'])" class="btn btn-danger btn-sm">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="filteredItems.length===0">
+          <td colspan="8"><div class="empty-state"><div class="empty-icon" style="background:#FFF7ED;color:#DD6B20;"><i class="fas fa-boxes-stacked"></i></div><p class="text-sm font-bold text-slate2-400">Belum ada data item</p></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div x-show="itemTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold" x-text="itemPage"></span> dari <span class="font-bold" x-text="itemTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredItems.length"></span> item</p>
+      <div class="flex items-center gap-1">
+        <button @click="itemPage=1" :disabled="itemPage===1" class="btn btn-ghost btn-icon-sm" :class="itemPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="itemPage--" :disabled="itemPage===1" class="btn btn-ghost btn-icon-sm" :class="itemPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:itemTotalPages},(_,i)=>i+1).filter(p=>p===1||p===itemTotalPages||Math.abs(p-itemPage)<=1)" :key="p">
+          <button @click="itemPage=p" :class="p===itemPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="itemPage++" :disabled="itemPage===itemTotalPages" class="btn btn-ghost btn-icon-sm" :class="itemPage===itemTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="itemPage=itemTotalPages" :disabled="itemPage===itemTotalPages" class="btn btn-ghost btn-icon-sm" :class="itemPage===itemTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MASTER USERS ═══ -->
+<div x-show="currentTab === 'm-users'" class="space-y-4">
+  <div class="page-header">
+    <div><h2 class="page-title">Master Users</h2><p class="page-subtitle">Data pengguna aktif yang dapat diasosiasikan ke lisensi & perangkat</p></div>
+    <button @click="openUserModal()" class="btn btn-primary"><i class="fas fa-user-plus"></i><span>Tambah User</span></button>
+  </div>
+  <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="userSearch" @input="userPage=1" placeholder="Cari nama, departemen, email..." class="form-input"></div></div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>Nama Lengkap</th><th>Departemen</th><th>Email</th><th>No. Telpon</th><th class="text-center">Status</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="usr in paginatedUsers" :key="usr.ID">
+          <tr>
+            <td><span class="font-mono font-black text-slate2-400 text-[11px]" x-text="usr.ID"></span></td>
+            <td>
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0"
+                  style="background:linear-gradient(135deg,#2B6CB0,#1d4ed8);"
+                  x-text="(usr['Full Name']||'?').charAt(0).toUpperCase()"></div>
+                <div>
+                  <p class="font-black text-slate2-800 text-xs" x-text="usr['Full Name']"></p>
+                  <p class="text-[10px] text-slate2-400" x-text="usr.Email||''"></p>
+                </div>
+              </div>
+            </td>
+            <td><span x-show="usr.Department" class="badge badge-blue" x-text="usr.Department"></span><span x-show="!usr.Department" class="text-slate2-300 text-[11px]">—</span></td>
+            <td><span class="font-mono text-[11px] text-slate2-500" x-text="usr.Email||'—'"></span></td>
+            <td><span class="font-mono text-[11px] text-slate2-500" x-text="usr.Phone||'—'"></span></td>
+            <td class="text-center"><span :class="usr.Status==='ACTIVE'?'badge-green':'badge-gray'" class="badge" x-text="usr.Status"></span></td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openUserModal(usr)" class="btn btn-ghost btn-sm">Edit</button>
+                <button @click="openDeleteConfirmation('master_users',usr.ID,usr['Full Name'])" class="btn btn-danger btn-sm">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="filteredUsers.length===0">
+          <td colspan="7"><div class="empty-state"><div class="empty-icon"><i class="fas fa-users"></i></div><p class="text-sm font-bold text-slate2-400">Belum ada data user</p></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div x-show="userTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold" x-text="userPage"></span> dari <span class="font-bold" x-text="userTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredUsers.length"></span> user</p>
+      <div class="flex items-center gap-1">
+        <button @click="userPage=1" :disabled="userPage===1" class="btn btn-ghost btn-icon-sm" :class="userPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="userPage--" :disabled="userPage===1" class="btn btn-ghost btn-icon-sm" :class="userPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:userTotalPages},(_,i)=>i+1).filter(p=>p===1||p===userTotalPages||Math.abs(p-userPage)<=1)" :key="p">
+          <button @click="userPage=p" :class="p===userPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="userPage++" :disabled="userPage===userTotalPages" class="btn btn-ghost btn-icon-sm" :class="userPage===userTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="userPage=userTotalPages" :disabled="userPage===userTotalPages" class="btn btn-ghost btn-icon-sm" :class="userPage===userTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

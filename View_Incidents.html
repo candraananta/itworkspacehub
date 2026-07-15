@@ -1,0 +1,111 @@
+<div x-show="currentTab === 'incidents'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Incident Reports</h2>
+      <p class="page-subtitle">Kelola laporan kendala transaksi & jaringan</p>
+    </div>
+    <button @click="openCreateModal()" class="btn btn-primary"><i class="fas fa-plus"></i><span>Buat Laporan</span></button>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card p-4 flex flex-col sm:flex-row gap-3">
+    <div class="search-wrap flex-1 max-w-sm">
+      <i class="fas fa-search"></i>
+      <input type="text" x-model="searchQuery" placeholder="Cari ID, deskripsi insiden..." class="form-input">
+    </div>
+    <div class="seg-control">
+      <button @click="statusFilter='All'" :class="statusFilter==='All'?'active':''" class="seg-btn">Semua</button>
+      <button @click="statusFilter='Waiting'" :class="statusFilter==='Waiting'?'active':''" class="seg-btn">Waiting</button>
+      <button @click="statusFilter='Closed'" :class="statusFilter==='Closed'?'active':''" class="seg-btn">Closed</button>
+    </div>
+  </div>
+
+  <!-- Mobile cards -->
+  <div class="md:hidden space-y-3">
+    <template x-for="item in paginatedIncidents" :key="item.ID">
+      <div class="card p-4 space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <p class="font-mono font-black text-royal-700 text-xs" x-text="item.ID"></p>
+            <p class="text-[10px] text-slate2-400 mt-0.5" x-text="item.Tanggal"></p>
+          </div>
+          <span :class="item.Status==='Waiting'?'badge-amber':'badge-gray'" class="badge shrink-0" x-text="item.Status"></span>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-slate2-700" x-text="item.Location + ' · ' + item.Category"></p>
+          <p class="text-xs text-slate2-500 mt-1 line-clamp-2" x-text="item.Description||'-'"></p>
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-slate2-100">
+          <div class="flex gap-2">
+            <button x-show="item['Photo Before']" @click="viewAsset('image',item['Photo Before'],'Before: '+item.ID)" class="btn btn-ghost btn-icon-sm text-slate2-400"><i class="fas fa-image text-[10px]"></i></button>
+            <button x-show="item['Photo After']" @click="viewAsset('image',item['Photo After'],'After: '+item.ID)" class="btn btn-ghost btn-icon-sm text-emerald-500"><i class="fas fa-circle-check text-[10px]"></i></button>
+          </div>
+          <div class="flex gap-2">
+            <button x-show="item.Status==='Waiting'" @click="openEditIncident(item)" class="btn btn-ghost btn-sm">Edit</button>
+            <button x-show="item.Status==='Waiting'" @click="openCloseModal(item)" class="btn btn-primary btn-sm">Selesaikan</button>
+          </div>
+        </div>
+      </div>
+    </template>
+    <div x-show="filteredIncidents.length===0" class="card">
+      <div class="empty-state"><div class="empty-icon"><i class="fas fa-inbox"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada data insiden</p></div>
+    </div>
+  </div>
+
+  <!-- Desktop table -->
+  <div class="card overflow-hidden hidden md:block">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>ID Log</th><th>Tanggal</th><th>Lokasi</th><th>Kategori</th>
+          <th class="max-w-xs">Deskripsi</th><th class="text-center">Status</th>
+          <th class="text-center">Media</th><th class="text-right">Aksi</th>
+        </tr></thead>
+        <tbody>
+          <template x-for="item in paginatedIncidents" :key="item.ID">
+            <tr>
+              <td><span class="font-mono font-black text-royal-700 text-[11px]" x-text="item.ID"></span></td>
+              <td class="text-slate2-400 text-[11px]" x-text="item.Tanggal"></td>
+              <td class="font-bold text-slate2-700" x-text="item.Location"></td>
+              <td class="text-slate2-600" x-text="item.Category"></td>
+              <td class="max-w-xs"><p class="truncate text-slate2-600" x-text="item.Description||'-'"></p></td>
+              <td class="text-center">
+                <span :class="item.Status==='Waiting'?'badge-amber':'badge-gray'" class="badge" x-text="item.Status"></span>
+              </td>
+              <td class="text-center">
+                <div class="flex justify-center gap-1">
+                  <button x-show="item['Photo Before']" @click="viewAsset('image',item['Photo Before'],'Before: '+item.ID)" class="btn btn-ghost btn-icon-sm text-slate2-400"><i class="fas fa-image text-[10px]"></i></button>
+                  <button x-show="item['Photo After']" @click="viewAsset('image',item['Photo After'],'After: '+item.ID)" class="btn btn-ghost btn-icon-sm text-emerald-500"><i class="fas fa-circle-check text-[10px]"></i></button>
+                </div>
+              </td>
+              <td class="text-right">
+                <div class="flex justify-end gap-2">
+                  <button x-show="item.Status==='Waiting'" @click="openEditIncident(item)" class="btn btn-ghost btn-sm">Edit</button>
+                  <button x-show="item.Status==='Waiting'" @click="openCloseModal(item)" class="btn btn-primary btn-sm">Selesaikan</button>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="filteredIncidents.length===0">
+            <td colspan="8">
+              <div class="empty-state"><div class="empty-icon"><i class="fas fa-inbox"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada data insiden ditemukan</p></div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination -->
+    <div x-show="incidentTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="incidentPage"></span> dari <span class="font-bold text-slate2-700" x-text="incidentTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredIncidents.length"></span> insiden</p>
+      <div class="flex items-center gap-1">
+        <button @click="incidentPage=1" :disabled="incidentPage===1" class="btn btn-ghost btn-icon-sm" :class="incidentPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="incidentPage--" :disabled="incidentPage===1" class="btn btn-ghost btn-icon-sm" :class="incidentPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:incidentTotalPages},(_,i)=>i+1).filter(p=>p===1||p===incidentTotalPages||Math.abs(p-incidentPage)<=1)" :key="p">
+          <button @click="incidentPage=p" :class="p===incidentPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="incidentPage++" :disabled="incidentPage===incidentTotalPages" class="btn btn-ghost btn-icon-sm" :class="incidentPage===incidentTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="incidentPage=incidentTotalPages" :disabled="incidentPage===incidentTotalPages" class="btn btn-ghost btn-icon-sm" :class="incidentPage===incidentTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

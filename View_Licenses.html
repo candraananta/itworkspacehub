@@ -1,0 +1,160 @@
+<div x-show="currentTab === 'licenses'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Office 2024 Licenses</h2>
+      <p class="page-subtitle">Manajemen lisensi & aktivasi Microsoft Office 2024</p>
+    </div>
+    <button @click="openLicenseModal()" class="btn" style="background:#1d4ed8;color:#fff;box-shadow:0 4px 14px rgba(29,78,216,.22);">
+      <i class="fas fa-plus"></i><span>Daftarkan Lisensi</span>
+    </button>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="card p-4">
+      <p class="text-[10px] font-black text-slate2-400 uppercase tracking-widest">Total Lisensi</p>
+      <p class="text-2xl font-black text-slate2-900 mt-1" x-text="licenses.length"></p>
+    </div>
+    <div class="card p-4">
+      <p class="text-[10px] font-black uppercase tracking-widest" style="color:#1d4ed8;">Teraktivasi</p>
+      <p class="text-2xl font-black text-slate2-900 mt-1" x-text="licenses.filter(l=>l['Tanggal Aktivasi']).length"></p>
+    </div>
+    <div class="card p-4">
+      <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest">Belum Aktivasi</p>
+      <p class="text-2xl font-black text-slate2-900 mt-1" x-text="licenses.filter(l=>!l['Tanggal Aktivasi']).length"></p>
+    </div>
+    <div class="card p-4">
+      <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Unique Users</p>
+      <p class="text-2xl font-black text-slate2-900 mt-1" x-text="new Set(licenses.map(l=>l.User).filter(u=>u)).size"></p>
+    </div>
+  </div>
+
+  <!-- Search & filter -->
+  <div class="card p-4 flex flex-col sm:flex-row gap-3">
+    <div class="search-wrap flex-1 max-w-sm">
+      <i class="fas fa-search"></i>
+      <input type="text" x-model="licSearch" @input="licPage=1" placeholder="Cari Part Number, Product, Hostname, User..." class="form-input">
+    </div>
+    <div class="seg-control">
+      <button @click="licFilter='all';licPage=1" :class="licFilter==='all'?'active':''" class="seg-btn">Semua</button>
+      <button @click="licFilter='activated';licPage=1" :class="licFilter==='activated'?'active':''" class="seg-btn">Aktif</button>
+      <button @click="licFilter='pending';licPage=1" :class="licFilter==='pending'?'active':''" class="seg-btn">Pending</button>
+    </div>
+  </div>
+
+  <div class="card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>ID</th><th>Part Number</th><th>Product Name</th><th class="text-center">Qty</th>
+          <th>Product Key</th><th>Unique Key</th><th class="text-center">Tgl Aktivasi</th>
+          <th>Hostname</th><th>User</th><th>Laptop / Brand &amp; Type</th>
+          <th>Akun Admin</th><th class="text-center">Status</th><th class="text-right">Aksi</th>
+        </tr></thead>
+        <tbody>
+          <template x-for="lic in paginatedLicenses" :key="lic.ID">
+            <tr class="group">
+              <td><span class="font-mono font-black text-[11px]" style="color:#1d4ed8;" x-text="lic.ID"></span></td>
+              <td><span class="font-mono text-[11px] text-slate2-600 font-bold" x-text="lic['Part Number']||'—'"></span></td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:#DBEAFE;">
+                    <i class="fas fa-file-word text-[10px]" style="color:#1d4ed8;"></i>
+                  </div>
+                  <span class="font-black text-slate2-800 whitespace-nowrap" x-text="lic['Product Name']||'—'"></span>
+                </div>
+              </td>
+              <td class="text-center"><span class="badge badge-blue font-mono" x-text="lic.Qty||1"></span></td>
+              <!-- Product Key masked -->
+              <td>
+                <div class="flex items-center gap-1.5 group/key">
+                  <span class="font-mono text-[11px]"
+                    :class="licRevealKey===lic.ID?'text-slate2-800':'text-slate2-400 tracking-widest'"
+                    x-text="licRevealKey===lic.ID?(lic['Product Key']||'—'):'XXXXX-XXXXX-XXXXX-XXXXX'"></span>
+                  <button @click="licRevealKey=(licRevealKey===lic.ID?null:lic.ID)"
+                    class="opacity-0 group-hover/key:opacity-100 btn btn-ghost btn-icon-sm transition">
+                    <i :class="licRevealKey===lic.ID?'fas fa-eye-slash':'fas fa-eye'" class="text-[9px]"></i>
+                  </button>
+                  <button x-show="lic['Product Key']"
+                    @click="navigator.clipboard.writeText(lic['Product Key']).then(()=>showToast('Product Key disalin!','success'))"
+                    class="opacity-0 group-hover/key:opacity-100 btn btn-ghost btn-icon-sm transition">
+                    <i class="fas fa-copy text-[9px]"></i>
+                  </button>
+                </div>
+              </td>
+              <!-- Unique Key masked -->
+              <td>
+                <div class="flex items-center gap-1.5 group/ukey">
+                  <span class="font-mono text-[11px] font-bold"
+                    :class="licRevealUKey===lic.ID?'text-slate2-800':'text-slate2-400 tracking-widest'"
+                    x-text="licRevealUKey===lic.ID?(lic['Unique Key']||'—'):'••••••••••••'"></span>
+                  <button @click="licRevealUKey=(licRevealUKey===lic.ID?null:lic.ID)"
+                    class="opacity-0 group-hover/ukey:opacity-100 btn btn-ghost btn-icon-sm transition">
+                    <i :class="licRevealUKey===lic.ID?'fas fa-eye-slash':'fas fa-eye'" class="text-[9px]"></i>
+                  </button>
+                  <button x-show="lic['Unique Key']"
+                    @click="navigator.clipboard.writeText(lic['Unique Key']).then(()=>showToast('Unique Key disalin!','success'))"
+                    class="opacity-0 group-hover/ukey:opacity-100 btn btn-ghost btn-icon-sm transition">
+                    <i class="fas fa-copy text-[9px]"></i>
+                  </button>
+                </div>
+              </td>
+              <td class="text-center">
+                <span x-show="lic['Tanggal Aktivasi']" class="badge badge-green text-[10px]"
+                  x-text="(lic['Tanggal Aktivasi']||'').substring(0,10)"></span>
+                <span x-show="!lic['Tanggal Aktivasi']" class="badge badge-amber">Pending</span>
+              </td>
+              <td><span class="font-mono text-[11px] text-slate2-600" x-text="lic.Hostname||'—'"></span></td>
+              <td>
+                <div x-show="lic.User" class="flex items-center gap-1.5">
+                  <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] font-black shrink-0"
+                    style="background:#1d4ed8;" x-text="(lic.User||'?').charAt(0).toUpperCase()"></div>
+                  <span class="text-[11px] font-semibold text-slate2-700 whitespace-nowrap" x-text="lic.User"></span>
+                </div>
+                <span x-show="!lic.User" class="text-slate2-300 text-[11px]">—</span>
+              </td>
+              <td>
+                <span x-show="lic['Laptop Brand Type']" class="badge"
+                  style="background:#EFF6FF;color:#1e40af;border:1px solid #BFDBFE;"
+                  x-text="lic['Laptop Brand Type']"></span>
+                <span x-show="!lic['Laptop Brand Type']" class="text-slate2-300 text-[11px]">—</span>
+              </td>
+              <td><span class="font-mono text-[11px] text-slate2-500" x-text="lic['Akun Admin']||'—'"></span></td>
+              <td class="text-center">
+                <span :class="lic.Status==='ACTIVE'?'badge-green':'badge-gray'" class="badge" x-text="lic.Status"></span>
+              </td>
+              <td class="text-right">
+                <div class="flex justify-end gap-2">
+                  <button @click="openLicenseModal(lic)" class="btn btn-ghost btn-sm">Edit</button>
+                  <button @click="openDeleteConfirmation('office_licenses',lic.ID,lic['Product Name']||lic.ID)" class="btn btn-danger btn-sm">Hapus</button>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="filteredLicenses.length===0">
+            <td colspan="13">
+              <div class="empty-state">
+                <div class="empty-icon" style="background:#EFF6FF;color:#1d4ed8;"><i class="fas fa-id-card text-2xl"></i></div>
+                <p class="text-sm font-bold text-slate2-400">Belum ada lisensi terdaftar</p>
+                <p class="text-xs text-slate2-400">Klik "Daftarkan Lisensi" untuk mulai mencatat aktivasi</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination -->
+    <div x-show="licTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="licPage"></span> dari <span class="font-bold text-slate2-700" x-text="licTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredLicenses.length"></span> lisensi</p>
+      <div class="flex items-center gap-1">
+        <button @click="licPage=1" :disabled="licPage===1" class="btn btn-ghost btn-icon-sm" :class="licPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="licPage--" :disabled="licPage===1" class="btn btn-ghost btn-icon-sm" :class="licPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:licTotalPages},(_,i)=>i+1).filter(p=>p===1||p===licTotalPages||Math.abs(p-licPage)<=1)" :key="p">
+          <button @click="licPage=p" :class="p===licPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="licPage++" :disabled="licPage===licTotalPages" class="btn btn-ghost btn-icon-sm" :class="licPage===licTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="licPage=licTotalPages" :disabled="licPage===licTotalPages" class="btn btn-ghost btn-icon-sm" :class="licPage===licTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

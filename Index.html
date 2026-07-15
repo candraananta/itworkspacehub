@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IT Tools ERP Workspace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            royal: {
+              50:'#EBF4FF',100:'#DBEAFE',200:'#BFDBFE',300:'#93C5FD',400:'#60A5FA',
+              500:'#3B82F6',600:'#2B6CB0',700:'#1E4E8C',800:'#1A3A66',900:'#0F2140',950:'#081428'
+            },
+            slate2: {
+              50:'#F8FAFC',100:'#EDF2F7',200:'#E2E8F0',300:'#CBD5E1',400:'#94A3B8',
+              500:'#64748B',600:'#475569',700:'#334155',800:'#1E293B',900:'#0F172A'
+            },
+            accent: { 50:'#FFF7ED',100:'#FFEDD5',300:'#FDB072',500:'#DD6B20',600:'#C05621',700:'#9C4221' }
+          },
+          fontFamily: { sans: ['Inter','sans-serif'] },
+          boxShadow: {
+            'card':'0 1px 3px 0 rgba(0,0,0,0.06),0 1px 2px -1px rgba(0,0,0,0.04)',
+            'card-md':'0 4px 6px -1px rgba(0,0,0,0.07),0 2px 4px -2px rgba(0,0,0,0.05)',
+            'card-lg':'0 10px 15px -3px rgba(0,0,0,0.08),0 4px 6px -4px rgba(0,0,0,0.05)',
+            'blue':'0 4px 14px 0 rgba(43,108,176,0.25)',
+            'blue-lg':'0 10px 25px -3px rgba(43,108,176,0.35)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* ── Reset & Base ── */
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { height: 5px; width: 5px; }
+    ::-webkit-scrollbar-track { background: #EDF2F7; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2B6CB0; }
+    [x-cloak] { display: none !important; }
+
+    /* ── Sidebar ── */
+    .sidebar { background: linear-gradient(180deg, #1A3A66 0%, #0F2140 100%); }
+    .nav-item { display:flex; align-items:center; gap:12px; padding:10px 16px; border-radius:12px; font-size:12px; font-weight:600; color:#93C5FD; transition:all .18s ease; cursor:pointer; border:none; background:none; width:100%; text-align:left; letter-spacing:.01em; }
+    .nav-item:hover { background:rgba(59,130,246,.12); color:#BFDBFE; }
+    .nav-item.active { background:rgba(43,108,176,.4); color:#fff; box-shadow:inset 3px 0 0 #60A5FA; }
+    .nav-item .nav-icon { width:18px; text-align:center; font-size:13px; opacity:.85; }
+    .nav-label { font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#3B82F6; padding:0 16px; margin:6px 0 4px; }
+    .nav-divider { height:1px; background:rgba(59,130,246,.12); margin:8px 16px; }
+
+    /* ── Cards ── */
+    .card { background:#fff; border-radius:16px; border:1px solid #E2E8F0; box-shadow:0 1px 3px 0 rgba(0,0,0,.06); }
+    .card-blue { background:linear-gradient(135deg,#2B6CB0 0%,#1A3A66 100%); border:none; }
+    .stat-card { border-radius:16px; border:1px solid #E2E8F0; background:#fff; padding:20px; box-shadow:0 1px 3px 0 rgba(0,0,0,.06); transition:box-shadow .2s,transform .2s; }
+    .stat-card:hover { box-shadow:0 4px 12px rgba(43,108,176,.12); transform:translateY(-1px); }
+    .stat-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+
+    /* ── Buttons ── */
+    .btn { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; padding:10px 18px; border-radius:12px; border:none; cursor:pointer; transition:all .18s ease; letter-spacing:.01em; white-space:nowrap; }
+    .btn-primary { background:#2B6CB0; color:#fff; box-shadow:0 4px 14px rgba(43,108,176,.25); }
+    .btn-primary:hover { background:#1E4E8C; box-shadow:0 6px 20px rgba(43,108,176,.35); transform:translateY(-1px); }
+    .btn-accent { background:#DD6B20; color:#fff; box-shadow:0 4px 14px rgba(221,107,32,.2); }
+    .btn-accent:hover { background:#C05621; box-shadow:0 6px 20px rgba(221,107,32,.3); transform:translateY(-1px); }
+    .btn-ghost { background:#EDF2F7; color:#475569; }
+    .btn-ghost:hover { background:#E2E8F0; color:#1E293B; }
+    .btn-danger { background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; }
+    .btn-danger:hover { background:#DC2626; color:#fff; }
+    .btn-sm { padding:7px 12px; font-size:11px; border-radius:9px; gap:5px; }
+    .btn-icon { width:36px; height:36px; padding:0; justify-content:center; border-radius:10px; }
+    .btn-icon-sm { width:28px; height:28px; padding:0; justify-content:center; border-radius:8px; font-size:10px; }
+
+    /* ── Badges ── */
+    .badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.03em; }
+    .badge-blue { background:#DBEAFE; color:#1E4E8C; }
+    .badge-green { background:#D1FAE5; color:#065F46; }
+    .badge-amber { background:#FEF3C7; color:#92400E; }
+    .badge-red { background:#FEE2E2; color:#991B1B; }
+    .badge-gray { background:#F1F5F9; color:#475569; }
+    .badge-orange { background:#FFEDD5; color:#9C4221; }
+    .badge-teal { background:#CCFBF1; color:#0F766E; }
+    .badge-purple { background:#EDE9FE; color:#5B21B6; }
+
+    /* ── Table ── */
+    .data-table { width:100%; font-size:12px; border-collapse:collapse; }
+    .data-table thead tr { border-bottom:2px solid #EDF2F7; }
+    .data-table thead th { padding:12px 16px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:#94A3B8; white-space:nowrap; text-align:left; background:#F8FAFC; }
+    .data-table thead th:first-child { border-radius:12px 0 0 0; }
+    .data-table thead th:last-child { border-radius:0 12px 0 0; }
+    .data-table tbody tr { border-bottom:1px solid #F1F5F9; transition:background .1s; }
+    .data-table tbody tr:hover { background:#F0F7FF; }
+    .data-table tbody td { padding:12px 16px; color:#334155; vertical-align:middle; }
+    .data-table tbody tr:last-child { border-bottom:none; }
+
+    /* ── Form Controls ── */
+    .form-input { width:100%; background:#F8FAFC; border:1.5px solid #E2E8F0; border-radius:12px; padding:10px 14px; font-size:12px; font-family:'Inter',sans-serif; color:#1E293B; transition:border-color .15s,box-shadow .15s; outline:none; }
+    .form-input:focus { border-color:#2B6CB0; box-shadow:0 0 0 3px rgba(43,108,176,.12); background:#fff; }
+    .form-input::placeholder { color:#94A3B8; }
+    .form-label { display:block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:#64748B; margin-bottom:6px; }
+    .search-wrap { position:relative; }
+    .search-wrap i { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94A3B8; font-size:11px; pointer-events:none; }
+    .search-wrap .form-input { padding-left:38px; }
+
+    /* ── Modals ── */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(15,33,64,.55); backdrop-filter:blur(4px); z-index:55; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .modal-box { background:#fff; border-radius:20px; box-shadow:0 20px 60px rgba(15,33,64,.25); width:100%; position:relative; }
+    .modal-header { padding:20px 24px; border-bottom:1px solid #EDF2F7; display:flex; align-items:center; justify-content:space-between; border-radius:20px 20px 0 0; background:linear-gradient(90deg,#F0F7FF 0%,#fff 100%); }
+    .modal-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+    .modal-body { padding:24px; }
+    .modal-footer { padding:16px 24px; border-top:1px solid #EDF2F7; display:flex; justify-content:flex-end; gap:10px; }
+    .modal-close { width:32px; height:32px; border-radius:10px; background:#F1F5F9; color:#64748B; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; transition:background .15s,color .15s; }
+    .modal-close:hover { background:#FEE2E2; color:#DC2626; }
+
+    /* ── Mobile Bottom Nav ── */
+    .bottom-nav { position:fixed; bottom:0; left:0; right:0; z-index:50; background:#1A3A66; border-top:1px solid rgba(59,130,246,.2); padding-bottom:env(safe-area-inset-bottom,0px); }
+    .bottom-nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; flex:1; padding:10px 4px; font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#60A5FA; transition:color .15s; cursor:pointer; border:none; background:none; }
+    .bottom-nav-item.active { color:#fff; }
+    .bottom-nav-item i { font-size:17px; }
+    .bottom-nav-item.active i { filter:drop-shadow(0 0 6px rgba(96,165,250,.8)); }
+
+    /* ── Drawer ── */
+    .drawer-overlay { position:fixed; inset:0; background:rgba(15,33,64,.6); z-index:55; backdrop-filter:blur(4px); }
+    .drawer-panel { position:fixed; bottom:0; left:0; right:0; z-index:60; background:linear-gradient(180deg,#1A3A66 0%,#0F2140 100%); border-radius:24px 24px 0 0; max-height:85vh; overflow-y:auto; padding:20px; padding-bottom:env(safe-area-inset-bottom,20px); }
+
+    /* ── Misc ── */
+    @media (max-width:767px) {
+      .mobile-content { padding:12px 12px 90px 12px !important; }
+      .modal-box { border-radius:20px 20px 0 0 !important; margin:0 !important; position:fixed !important; bottom:0 !important; left:0 !important; right:0 !important; max-height:92vh; }
+      .modal-backdrop { align-items:flex-end !important; padding:0 !important; }
+    }
+    .rack-chassis { background:linear-gradient(180deg,#0D1B2A 0%,#081428 100%); border-radius:14px; }
+    .rack-slot { border-radius:6px; cursor:pointer; transition:all .15s; }
+    .rack-slot:hover { opacity:.85; }
+    .rack-slot.filled { background:linear-gradient(90deg,#1E3A66 0%,#1A3A55 100%); border-left:3px solid #2B6CB0; }
+    .rack-slot.empty { background:rgba(43,108,176,.04); border:1px dashed rgba(43,108,176,.2); }
+    .rack-slot.empty:hover { background:rgba(43,108,176,.08); border-color:rgba(43,108,176,.4); }
+    .wiki-timeline::before { content:''; position:absolute; left:18px; top:0; bottom:0; width:2px; background:linear-gradient(180deg,#2B6CB0,#60A5FA); z-index:0; border-radius:2px; }
+    .tab-content { animation:tabIn .2s ease; }
+    @keyframes tabIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .toggle-track { position:relative; display:inline-flex; width:40px; height:22px; }
+    .toggle-track input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; cursor:pointer; inset:0; background:#CBD5E1; border-radius:999px; transition:.2s; }
+    .toggle-slider:before { content:""; position:absolute; height:16px; width:16px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+    input:checked + .toggle-slider { background:#2B6CB0; }
+    input:checked + .toggle-slider:before { transform:translateX(18px); }
+    .toast { background:#1A3A66; border:1px solid rgba(59,130,246,.25); color:#fff; border-radius:14px; padding:14px 18px; box-shadow:0 8px 25px rgba(15,33,64,.3); font-size:12px; font-weight:600; display:flex; align-items:flex-start; gap:12px; }
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .page-title { font-size:18px; font-weight:800; color:#1A3A66; letter-spacing:-.02em; }
+    .page-subtitle { font-size:11px; color:#94A3B8; font-weight:500; margin-top:2px; }
+    .spinner { width:20px; height:20px; border:2.5px solid rgba(43,108,176,.2); border-top-color:#2B6CB0; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .pw-row .pw-actions { opacity:0; transition:opacity .15s; }
+    .pw-row:hover .pw-actions { opacity:1; }
+    .seg-control { background:#EDF2F7; border-radius:10px; padding:3px; display:inline-flex; gap:2px; }
+    .seg-btn { padding:6px 14px; border-radius:8px; font-size:11px; font-weight:700; border:none; cursor:pointer; transition:all .15s; color:#64748B; background:transparent; }
+    .seg-btn.active { background:#fff; color:#1A3A66; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+    .empty-state { display:flex; flex-direction:column; align-items:center; gap:12px; padding:48px 24px; }
+    .empty-icon { width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:22px; background:#F0F7FF; color:#60A5FA; }
+  </style>
+</head>
+<body class="bg-slate2-100 text-slate2-900 antialiased" x-data="appState()" x-cloak>
+
+  <div class="min-h-screen flex flex-col md:flex-row">
+
+    <!-- ═══ SIDEBAR (Desktop) ═══ -->
+    <aside class="hidden md:flex md:w-64 sidebar flex-col shadow-2xl z-20 shrink-0">
+      <div class="px-5 py-5 border-b border-royal-800/30">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-royal-600 rounded-xl flex items-center justify-center shadow-blue">
+            <i class="fas fa-server text-white text-sm"></i>
+          </div>
+          <div>
+            <p class="text-[10px] font-black tracking-widest uppercase text-royal-300 leading-none">Enterprise</p>
+            <p class="text-sm font-black text-white tracking-tight leading-tight">IT Workspace</p>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto mt-2">
+        <p class="nav-label">Core Operations</p>
+        <button @click="currentTab='dashboard'" :class="currentTab==='dashboard'?'active':''" class="nav-item"><i class="nav-icon fas fa-chart-line"></i><span>Dashboard</span></button>
+        <button @click="currentTab='incidents'" :class="currentTab==='incidents'?'active':''" class="nav-item">
+          <i class="nav-icon fas fa-triangle-exclamation"></i><span>Incident Reports</span>
+          <span x-show="incidents.filter(i=>i.Status==='Waiting').length" class="ml-auto badge badge-amber" style="font-size:9px;padding:2px 7px;" x-text="incidents.filter(i=>i.Status==='Waiting').length"></span>
+        </button>
+        <div class="nav-divider"></div>
+        <p class="nav-label">Infrastructure</p>
+        <button @click="currentTab='racks'" :class="currentTab==='racks'?'active':''" class="nav-item"><i class="nav-icon fas fa-server"></i><span>Rack Management</span></button>
+        <button @click="currentTab='vlans'" :class="currentTab==='vlans'?'active':''" class="nav-item"><i class="nav-icon fas fa-network-wired"></i><span>VLAN Setup</span></button>
+        <div class="nav-divider"></div>
+        <p class="nav-label">KPI Management</p>
+        <button @click="currentTab='kpi-projects'" :class="currentTab==='kpi-projects'?'active':''" class="nav-item"><i class="nav-icon fas fa-rocket"></i><span>Quality Delivery</span></button>
+        <button @click="currentTab='kpi-trainings'" :class="currentTab==='kpi-trainings'?'active':''" class="nav-item"><i class="nav-icon fas fa-chalkboard-user"></i><span>Training Record</span></button>
+        <div class="nav-divider"></div>
+        <p class="nav-label">Knowledge</p>
+        <button @click="currentTab='wiki'" :class="currentTab==='wiki'?'active':''" class="nav-item"><i class="nav-icon fas fa-book-open-reader"></i><span>Wiki Base</span></button>
+        <div class="nav-divider"></div>
+        <p class="nav-label">Security</p>
+        <button @click="currentTab='passwords'" :class="currentTab==='passwords'?'active':''" class="nav-item"><i class="nav-icon fas fa-vault"></i><span>Password Vault</span></button>
+        <div class="nav-divider"></div>
+        <p class="nav-label">Lisensi</p>
+        <button @click="currentTab='licenses'" :class="currentTab==='licenses'?'active':''" class="nav-item">
+          <i class="nav-icon fas fa-id-card"></i><span>Office Licenses</span>
+          <span x-show="licenses.length" class="ml-auto badge badge-blue" style="font-size:9px;padding:2px 7px;" x-text="licenses.length"></span>
+        </button>
+        <div class="nav-divider"></div>
+        <p class="nav-label">Audit & Compliance</p>
+        <button @click="currentTab='checklists'" :class="currentTab==='checklists'?'active':''" class="nav-item">
+          <i class="nav-icon fas fa-clipboard-check"></i><span>Checklist Perangkat</span>
+          <span x-show="checklists.length" class="ml-auto badge badge-green" style="font-size:9px;padding:2px 7px;" x-text="checklists.length"></span>
+        </button>
+        <div class="nav-divider"></div>
+        <p class="nav-label">Master Data</p>
+        <button @click="currentTab='m-location'" :class="currentTab==='m-location'?'active':''" class="nav-item"><i class="nav-icon fas fa-location-dot"></i><span>Locations</span></button>
+        <button @click="currentTab='m-category'" :class="currentTab==='m-category'?'active':''" class="nav-item"><i class="nav-icon fas fa-tags"></i><span>Categories</span></button>
+        <button @click="currentTab='m-items'" :class="currentTab==='m-items'?'active':''" class="nav-item"><i class="nav-icon fas fa-boxes-stacked"></i><span>Master Items</span></button>
+        <button @click="currentTab='m-users'" :class="currentTab==='m-users'?'active':''" class="nav-item"><i class="nav-icon fas fa-users"></i><span>Master Users</span></button>
+      </nav>
+      <div class="p-4 border-t border-royal-800/30">
+        <div class="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-royal-800/30 transition cursor-pointer">
+          <div class="w-8 h-8 rounded-lg bg-royal-600 flex items-center justify-center text-white text-xs font-black">IT</div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">IT Administrator</p>
+            <p class="text-[10px] text-royal-300">System Manager</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
+      <!-- Topbar -->
+      <header class="bg-white border-b border-slate2-200 h-14 flex items-center justify-between px-4 md:px-6 shrink-0 z-10">
+        <div class="flex items-center gap-3">
+          <button @click="showDrawer=true" class="md:hidden btn btn-ghost btn-icon text-slate2-500"><i class="fas fa-bars text-sm"></i></button>
+          <div>
+            <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 leading-none">IT Systems Hub</p>
+            <h1 class="text-xs font-bold text-slate2-800 tracking-wide leading-tight" x-text="headerTitles[currentTab]"></h1>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button @click="fetchData()" class="btn btn-ghost btn-icon text-slate2-500">
+            <i class="fas fa-rotate text-sm" :class="loading?'animate-spin text-royal-600':''"></i>
+          </button>
+          <div class="hidden sm:flex w-8 h-8 rounded-lg bg-royal-600 items-center justify-center text-white text-[10px] font-black">IT</div>
+        </div>
+      </header>
+
+      <!-- Scroll area -->
+      <div class="flex-1 overflow-y-auto p-4 md:p-6 mobile-content">
+
+        <!-- Loading overlay -->
+        <div x-show="initialLoading" class="fixed inset-0 bg-slate2-100/90 flex flex-col items-center justify-center z-40 backdrop-blur-sm">
+          <div class="card p-8 flex flex-col items-center gap-4 shadow-card-lg">
+            <div class="w-12 h-12 rounded-2xl bg-royal-600 flex items-center justify-center shadow-blue">
+              <i class="fas fa-server text-white text-xl"></i>
+            </div>
+            <div class="spinner"></div>
+            <p class="text-[10px] font-black text-slate2-400 uppercase tracking-widest">Sinkronisasi Cloud Database...</p>
+          </div>
+        </div>
+
+        <div x-show="!initialLoading" x-transition.opacity.duration.200ms class="tab-content">
+          <?!= include('View_Dashboard') ?>
+          <?!= include('View_Incidents') ?>
+          <?!= include('View_Infrastructure') ?>
+          <?!= include('View_KPI') ?>
+          <?!= include('View_Knowledge') ?>
+          <?!= include('View_Security') ?>
+          <?!= include('View_Licenses') ?>
+          <?!= include('View_Checklists') ?>
+          <?!= include('View_Master') ?>
+        </div>
+
+      </div><!-- /scroll area -->
+    </main>
+  </div>
+
+  <!-- ═══ MOBILE BOTTOM NAV ═══ -->
+  <div class="bottom-nav md:hidden flex">
+    <button @click="currentTab='dashboard'" :class="currentTab==='dashboard'?'active':''" class="bottom-nav-item"><i class="fas fa-chart-line"></i><span>Home</span></button>
+    <button @click="currentTab='incidents'" :class="currentTab==='incidents'?'active':''" class="bottom-nav-item"><i class="fas fa-triangle-exclamation"></i><span>Insiden</span></button>
+    <button @click="currentTab='passwords'" :class="currentTab==='passwords'?'active':''" class="bottom-nav-item"><i class="fas fa-vault"></i><span>Vault</span></button>
+    <button @click="currentTab='wiki'" :class="currentTab==='wiki'?'active':''" class="bottom-nav-item"><i class="fas fa-book-open-reader"></i><span>Wiki</span></button>
+    <button @click="showDrawer=true" class="bottom-nav-item"><i class="fas fa-bars-staggered"></i><span>Menu</span></button>
+  </div>
+
+  <!-- ═══ MOBILE DRAWER ═══ -->
+  <div x-show="showDrawer" x-cloak>
+    <div class="drawer-overlay" @click="showDrawer=false"></div>
+    <div class="drawer-panel">
+      <div class="flex items-center justify-between mb-5">
+        <p class="text-xs font-black text-white tracking-widest uppercase">Navigation</p>
+        <button @click="showDrawer=false" class="w-8 h-8 rounded-xl bg-royal-800/60 text-royal-300 flex items-center justify-center"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="space-y-1">
+        <button @click="currentTab='racks';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-server"></i><span>Rack Management</span></button>
+        <button @click="currentTab='vlans';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-network-wired"></i><span>VLAN Setup</span></button>
+        <button @click="currentTab='kpi-projects';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-rocket"></i><span>Quality Delivery</span></button>
+        <button @click="currentTab='kpi-trainings';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-chalkboard-user"></i><span>Training Record</span></button>
+        <button @click="currentTab='licenses';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-id-card"></i><span>Office Licenses</span></button>
+        <button @click="currentTab='checklists';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-clipboard-check"></i><span>Checklist Perangkat</span></button>
+        <div class="nav-divider"></div>
+        <button @click="currentTab='m-location';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-location-dot"></i><span>Master Lokasi</span></button>
+        <button @click="currentTab='m-category';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-tags"></i><span>Master Kategori</span></button>
+        <button @click="currentTab='m-items';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-boxes-stacked"></i><span>Master Items</span></button>
+        <button @click="currentTab='m-users';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-users"></i><span>Master Users</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ALL MODALS ═══ -->
+  <?!= include('View_Modals') ?>
+
+  <!-- ═══ ALPINE STATE ═══ -->
+  <?!= include('View_AppState') ?>
+
+</body>
+</html>

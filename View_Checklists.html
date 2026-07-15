@@ -1,0 +1,77 @@
+<div x-show="currentTab === 'checklists'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Checklist Perangkat IT</h2>
+      <p class="page-subtitle">Form audit & inspeksi rutin perangkat infrastruktur per site</p>
+    </div>
+    <button @click="openChecklistModal()" class="btn" style="background:#15803d;color:#fff;box-shadow:0 4px 14px rgba(21,128,61,.22);">
+      <i class="fas fa-plus"></i><span>Buat Form Checklist</span>
+    </button>
+  </div>
+
+  <div class="card p-4">
+    <div class="search-wrap max-w-sm"><i class="fas fa-search"></i>
+      <input type="text" x-model="checklistSearch" @input="checklistPage=1" placeholder="Cari judul, site, kode form..." class="form-input">
+    </div>
+  </div>
+
+  <!-- Card grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <template x-for="chk in paginatedChecklists" :key="chk.ID">
+      <div class="card p-5 hover:shadow-card-md transition">
+        <div class="flex items-start justify-between gap-2 mb-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:#DCFCE7;">
+            <i class="fas fa-clipboard-check text-[15px]" style="color:#15803d;"></i>
+          </div>
+          <span :class="chk.Status==='ACTIVE'?'badge-green':'badge-gray'" class="badge" x-text="chk.Status"></span>
+        </div>
+        <p class="font-mono font-black text-[11px]" style="color:#15803d;" x-text="chk['Form Code']"></p>
+        <h3 class="text-sm font-black text-slate2-800 mt-1 leading-tight" x-text="chk.Judul"></h3>
+        <div class="flex items-center gap-2 mt-2.5 text-[11px] text-slate2-500">
+          <i class="fas fa-location-dot text-slate2-400"></i>
+          <span class="font-bold" x-text="chk.Site"></span>
+        </div>
+        <div class="flex items-center gap-2 mt-1.5 text-[11px] text-slate2-500">
+          <i class="fas fa-calendar text-slate2-400"></i>
+          <span x-text="(chk.Tanggal||'').substring(0,10)"></span>
+        </div>
+        <div class="flex items-center gap-2 mt-1.5 text-[11px] text-slate2-500">
+          <i class="fas fa-list-check text-slate2-400"></i>
+          <span x-text="countChecklistRows(chk) + ' parameter diperiksa'"></span>
+        </div>
+        <!-- Mini status summary -->
+        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate2-100">
+          <span class="badge badge-green text-[10px]" x-text="countChecklistStatus(chk,'Baik') + ' Baik'"></span>
+          <span class="badge badge-red text-[10px]" x-text="countChecklistStatus(chk,'Tidak Baik') + ' Issue'"></span>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button @click="openChecklistModal(chk)" class="btn btn-ghost btn-sm flex-1 justify-center">Edit</button>
+          <button @click="openDeleteConfirmation('checklist_forms',chk.ID,chk.Judul)" class="btn btn-danger btn-sm flex-1 justify-center">Hapus</button>
+        </div>
+      </div>
+    </template>
+    <div x-show="filteredChecklists.length===0" class="col-span-full">
+      <div class="card">
+        <div class="empty-state">
+          <div class="empty-icon" style="background:#DCFCE7;color:#15803d;"><i class="fas fa-clipboard-check"></i></div>
+          <p class="text-sm font-bold text-slate2-400">Belum ada form checklist</p>
+          <p class="text-xs text-slate2-400">Klik "Buat Form Checklist" untuk mulai audit</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div x-show="checklistTotalPages > 1" class="card px-5 py-3.5 flex items-center justify-between">
+    <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="checklistPage"></span> dari <span class="font-bold text-slate2-700" x-text="checklistTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredChecklists.length"></span> form</p>
+    <div class="flex items-center gap-1">
+      <button @click="checklistPage=1" :disabled="checklistPage===1" class="btn btn-ghost btn-icon-sm" :class="checklistPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+      <button @click="checklistPage--" :disabled="checklistPage===1" class="btn btn-ghost btn-icon-sm" :class="checklistPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+      <template x-for="p in Array.from({length:checklistTotalPages},(_,i)=>i+1).filter(p=>p===1||p===checklistTotalPages||Math.abs(p-checklistPage)<=1)" :key="p">
+        <button @click="checklistPage=p" :class="p===checklistPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+      </template>
+      <button @click="checklistPage++" :disabled="checklistPage===checklistTotalPages" class="btn btn-ghost btn-icon-sm" :class="checklistPage===checklistTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+      <button @click="checklistPage=checklistTotalPages" :disabled="checklistPage===checklistTotalPages" class="btn btn-ghost btn-icon-sm" :class="checklistPage===checklistTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+    </div>
+  </div>
+</div>

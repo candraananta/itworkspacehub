@@ -1,0 +1,116 @@
+<!-- ═══ KPI PROJECTS ═══ -->
+<div x-show="currentTab === 'kpi-projects'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Quality Delivery</h2>
+      <p class="page-subtitle">KPI monitoring project & delivery output</p>
+    </div>
+    <button @click="openKpiProjectModal()" class="btn" style="background:#7C3AED;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.2);">
+      <i class="fas fa-plus"></i><span>Record Project</span>
+    </button>
+  </div>
+  <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="kpiProjSearch" @input="kpiProjPage=1" placeholder="Cari KPI Project..." class="form-input"></div></div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>Tanggal</th><th>Nama Project</th><th>Lokasi</th><th class="text-center">Media</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="kp in paginatedKpiProjects" :key="kp.ID">
+          <tr>
+            <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="kp.ID"></span></td>
+            <td class="text-slate2-400 text-[11px]" x-text="kp.Tanggal"></td>
+            <td class="font-black text-slate2-800" x-text="kp['Project Name']"></td>
+            <td><span class="badge badge-purple" x-text="kp.Location"></span></td>
+            <td class="text-center">
+              <div class="flex justify-center gap-1">
+                <template x-for="(pic,i) in (kp.Photos||[])">
+                  <img :src="pic" class="w-7 h-7 rounded-lg border border-slate2-200 object-cover cursor-pointer hover:scale-110 transition" @click="viewAsset('image',pic,kp['Project Name'])">
+                </template>
+              </div>
+            </td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openKpiProjectModal(kp)" class="btn btn-ghost btn-sm">Edit</button>
+                <button @click="openDeleteConfirmation('kpi_projects',kp.ID,kp['Project Name'])" class="btn btn-danger btn-sm">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="filteredKpiProjects.length===0">
+          <td colspan="6"><div class="empty-state"><div class="empty-icon"><i class="fas fa-rocket"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada project ditemukan</p></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div x-show="kpiProjTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold" x-text="kpiProjPage"></span> dari <span class="font-bold" x-text="kpiProjTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredKpiProjects.length"></span> project</p>
+      <div class="flex items-center gap-1">
+        <button @click="kpiProjPage=1" :disabled="kpiProjPage===1" class="btn btn-ghost btn-icon-sm" :class="kpiProjPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="kpiProjPage--" :disabled="kpiProjPage===1" class="btn btn-ghost btn-icon-sm" :class="kpiProjPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:kpiProjTotalPages},(_,i)=>i+1).filter(p=>p===1||p===kpiProjTotalPages||Math.abs(p-kpiProjPage)<=1)" :key="p">
+          <button @click="kpiProjPage=p" :class="p===kpiProjPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="kpiProjPage++" :disabled="kpiProjPage===kpiProjTotalPages" class="btn btn-ghost btn-icon-sm" :class="kpiProjPage===kpiProjTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="kpiProjPage=kpiProjTotalPages" :disabled="kpiProjPage===kpiProjTotalPages" class="btn btn-ghost btn-icon-sm" :class="kpiProjPage===kpiProjTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KPI TRAININGS ═══ -->
+<div x-show="currentTab === 'kpi-trainings'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Training Records</h2>
+      <p class="page-subtitle">KPI monitoring sesi training & pengembangan SDM</p>
+    </div>
+    <button @click="openKpiTrainingModal()" class="btn" style="background:#DB2777;color:#fff;box-shadow:0 4px 14px rgba(219,39,119,.2);">
+      <i class="fas fa-plus"></i><span>Record Training</span>
+    </button>
+  </div>
+  <div class="card p-4"><div class="search-wrap max-w-sm"><i class="fas fa-search"></i><input type="text" x-model="kpiTrainSearch" @input="kpiTrainPage=1" placeholder="Cari judul training..." class="form-input"></div></div>
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>Judul Training</th><th>Topik</th><th>Metode / Lokasi</th><th class="text-center">Media</th><th class="text-right">Aksi</th></tr></thead>
+      <tbody>
+        <template x-for="kt in paginatedKpiTrainings" :key="kt.ID">
+          <tr>
+            <td><span class="font-mono text-[11px] text-slate2-400 font-bold" x-text="kt.ID"></span></td>
+            <td class="font-black text-slate2-800" x-text="kt['Judul Training']"></td>
+            <td class="text-slate2-500" x-text="kt.Topic"></td>
+            <td>
+              <span :class="kt.Method==='Online'?'badge-blue':'badge-green'" class="badge block w-fit" x-text="kt.Method"></span>
+              <span class="text-[10px] text-slate2-400 mt-0.5 block" x-text="kt.Location"></span>
+            </td>
+            <td class="text-center">
+              <div class="flex justify-center gap-1">
+                <template x-for="pic in (kt.Photos||[])">
+                  <img :src="pic" class="w-7 h-7 rounded-lg border object-cover cursor-pointer" @click="viewAsset('image',pic,kt['Judul Training'])">
+                </template>
+              </div>
+            </td>
+            <td class="text-right">
+              <div class="flex justify-end gap-2">
+                <button @click="openKpiTrainingModal(kt)" class="btn btn-ghost btn-sm">Edit</button>
+                <button @click="openDeleteConfirmation('kpi_trainings',kt.ID,kt['Judul Training'])" class="btn btn-danger btn-sm">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="filteredKpiTrainings.length===0">
+          <td colspan="6"><div class="empty-state"><div class="empty-icon"><i class="fas fa-chalkboard-user"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada training ditemukan</p></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div x-show="kpiTrainTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold" x-text="kpiTrainPage"></span> dari <span class="font-bold" x-text="kpiTrainTotalPages"></span> &nbsp;·&nbsp; <span x-text="filteredKpiTrainings.length"></span> training</p>
+      <div class="flex items-center gap-1">
+        <button @click="kpiTrainPage=1" :disabled="kpiTrainPage===1" class="btn btn-ghost btn-icon-sm" :class="kpiTrainPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="kpiTrainPage--" :disabled="kpiTrainPage===1" class="btn btn-ghost btn-icon-sm" :class="kpiTrainPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:kpiTrainTotalPages},(_,i)=>i+1).filter(p=>p===1||p===kpiTrainTotalPages||Math.abs(p-kpiTrainPage)<=1)" :key="p">
+          <button @click="kpiTrainPage=p" :class="p===kpiTrainPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="kpiTrainPage++" :disabled="kpiTrainPage===kpiTrainTotalPages" class="btn btn-ghost btn-icon-sm" :class="kpiTrainPage===kpiTrainTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="kpiTrainPage=kpiTrainTotalPages" :disabled="kpiTrainPage===kpiTrainTotalPages" class="btn btn-ghost btn-icon-sm" :class="kpiTrainPage===kpiTrainTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

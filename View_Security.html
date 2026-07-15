@@ -1,0 +1,148 @@
+<div x-show="currentTab === 'passwords'" class="space-y-4">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Password Vault</h2>
+      <p class="page-subtitle">Manajemen credential & akses sistem infrastruktur</p>
+    </div>
+    <button @click="openPasswordModal()" class="btn" style="background:#0D9488;color:#fff;box-shadow:0 4px 14px rgba(13,148,136,.2);">
+      <i class="fas fa-plus"></i><span>Tambah Credential</span>
+    </button>
+  </div>
+
+  <!-- Advanced Search -->
+  <div class="card p-4 space-y-3">
+    <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Advanced Search & Filter</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="search-wrap lg:col-span-1">
+        <i class="fas fa-search"></i>
+        <input type="text" x-model="pwSearch" @input="pwPage=1" placeholder="Cari app, URL, username..." class="form-input">
+      </div>
+      <select x-model="pwFilterCat" @change="pwPage=1" class="form-input cursor-pointer">
+        <option value="">Semua Kategori</option>
+        <template x-for="c in masterData.categories" :key="c.ID">
+          <option :value="c['Category Name']" x-text="c['Category Name']"></option>
+        </template>
+      </select>
+      <select x-model="pwFilterLoc" @change="pwPage=1" class="form-input cursor-pointer">
+        <option value="">Semua Lokasi</option>
+        <template x-for="l in masterData.locations" :key="l.ID">
+          <option :value="l['Location Name']" x-text="l['Location Name']"></option>
+        </template>
+      </select>
+      <div class="seg-control w-full">
+        <button @click="pwFilterStatus='all';pwPage=1" :class="pwFilterStatus==='all'?'active':''" class="seg-btn flex-1">Semua</button>
+        <button @click="pwFilterStatus='active';pwPage=1" :class="pwFilterStatus==='active'?'active':''" class="seg-btn flex-1">Aktif</button>
+        <button @click="pwFilterStatus='inactive';pwPage=1" :class="pwFilterStatus==='inactive'?'active':''" class="seg-btn flex-1">Nonaktif</button>
+      </div>
+    </div>
+    <div class="flex items-center justify-between pt-2 border-t border-slate2-100">
+      <p class="text-[10px] text-slate2-400">
+        Menampilkan <span class="font-bold text-slate2-700" x-text="filteredPasswords.length"></span>
+        dari <span class="font-bold text-slate2-700" x-text="passwords.length"></span> credential
+      </p>
+      <button x-show="pwSearch||pwFilterCat||pwFilterLoc||pwFilterStatus!=='all'"
+        @click="pwSearch='';pwFilterCat='';pwFilterLoc='';pwFilterStatus='all';pwPage=1"
+        class="btn btn-sm btn-ghost text-teal-600">
+        <i class="fas fa-xmark mr-1"></i>Reset Filter
+      </button>
+    </div>
+  </div>
+
+  <div class="card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>ID</th><th>App / System</th><th>URL / IP</th><th>Username</th>
+          <th>Password</th><th>Kategori</th><th>Lokasi</th>
+          <th class="text-center">Status</th><th class="text-right">Aksi</th>
+        </tr></thead>
+        <tbody>
+          <template x-for="pw in paginatedPasswords" :key="pw.ID">
+            <tr class="pw-row group">
+              <td><span class="font-mono font-black text-slate2-400 text-[11px]" x-text="pw.ID"></span></td>
+              <td>
+                <div class="flex items-center gap-2.5">
+                  <div class="w-7 h-7 rounded-lg" style="background:#CCFBF1;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-key text-teal-600" style="font-size:10px;"></i>
+                  </div>
+                  <span class="font-black text-slate2-800" x-text="pw['App Name']"></span>
+                </div>
+              </td>
+              <td>
+                <a x-show="pw.URL" :href="pw.URL" target="_blank"
+                  class="font-mono text-[11px] text-royal-600 hover:underline truncate max-w-[120px] block"
+                  x-text="pw.URL"></a>
+                <span x-show="!pw.URL" class="text-slate2-300 italic text-[11px]">—</span>
+              </td>
+              <td>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-[11px] text-slate2-600" x-text="pw.Username||'—'"></span>
+                  <button x-show="pw.Username"
+                    @click="navigator.clipboard.writeText(pw.Username).then(()=>showToast('Username disalin!','success'))"
+                    class="pw-actions btn btn-ghost btn-icon-sm" title="Copy">
+                    <i class="fas fa-copy text-[9px]"></i>
+                  </button>
+                </div>
+              </td>
+              <td>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-[11px]"
+                    :class="pwRevealId===pw.ID?'text-slate2-800':'text-slate2-400 tracking-widest'"
+                    x-text="pwRevealId===pw.ID?pw.Password:'••••••••'"></span>
+                  <div class="pw-actions flex gap-1">
+                    <button @click="pwRevealId=(pwRevealId===pw.ID?null:pw.ID)"
+                      class="btn btn-ghost btn-icon-sm"
+                      :title="pwRevealId===pw.ID?'Sembunyikan':'Tampilkan'">
+                      <i :class="pwRevealId===pw.ID?'fas fa-eye-slash':'fas fa-eye'" class="text-[9px]"></i>
+                    </button>
+                    <button @click="navigator.clipboard.writeText(pw.Password).then(()=>showToast('Password disalin!','success'))"
+                      class="btn btn-ghost btn-icon-sm" title="Copy">
+                      <i class="fas fa-copy text-[9px]"></i>
+                    </button>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span x-show="pw.Category" class="badge badge-teal" x-text="pw.Category"></span>
+                <span x-show="!pw.Category" class="text-slate2-300 text-[11px]">—</span>
+              </td>
+              <td class="text-slate2-500 text-[11px] font-medium" x-text="pw.Location||'—'"></td>
+              <td class="text-center">
+                <span :class="pw['Is Active']===true?'badge-green':'badge-red'" class="badge"
+                  x-text="pw['Is Active']===true?'Aktif':'Nonaktif'"></span>
+              </td>
+              <td class="text-right">
+                <div class="flex justify-end gap-2">
+                  <button @click="openPasswordModal(pw)" class="btn btn-ghost btn-sm">Edit</button>
+                  <button @click="openDeleteConfirmation('passwords',pw.ID,pw['App Name'])" class="btn btn-danger btn-sm">Hapus</button>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="filteredPasswords.length===0">
+            <td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon" style="background:#F0FDFA;color:#0D9488;"><i class="fas fa-vault text-2xl"></i></div>
+                <p class="text-sm font-bold text-slate2-400">Vault kosong</p>
+                <p class="text-xs text-slate2-400">Klik "Tambah Credential" untuk mulai menyimpan akses</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination -->
+    <div x-show="pwTotalPages > 1" class="px-5 py-3.5 border-t border-slate2-100 bg-slate2-50/60 flex items-center justify-between">
+      <p class="text-[10px] text-slate2-400">Halaman <span class="font-bold text-slate2-700" x-text="pwPage"></span> dari <span class="font-bold text-slate2-700" x-text="pwTotalPages"></span></p>
+      <div class="flex items-center gap-1">
+        <button @click="pwPage=1" :disabled="pwPage===1" class="btn btn-ghost btn-icon-sm" :class="pwPage===1?'opacity-30':''"><i class="fas fa-angles-left text-[10px]"></i></button>
+        <button @click="pwPage--" :disabled="pwPage===1" class="btn btn-ghost btn-icon-sm" :class="pwPage===1?'opacity-30':''"><i class="fas fa-angle-left text-[10px]"></i></button>
+        <template x-for="p in Array.from({length:pwTotalPages},(_,i)=>i+1).filter(p=>p===1||p===pwTotalPages||Math.abs(p-pwPage)<=1)" :key="p">
+          <button @click="pwPage=p" :class="p===pwPage?'btn-primary':'btn-ghost'" class="btn btn-icon-sm text-[10px] font-black" x-text="p"></button>
+        </template>
+        <button @click="pwPage++" :disabled="pwPage===pwTotalPages" class="btn btn-ghost btn-icon-sm" :class="pwPage===pwTotalPages?'opacity-30':''"><i class="fas fa-angle-right text-[10px]"></i></button>
+        <button @click="pwPage=pwTotalPages" :disabled="pwPage===pwTotalPages" class="btn btn-ghost btn-icon-sm" :class="pwPage===pwTotalPages?'opacity-30':''"><i class="fas fa-angles-right text-[10px]"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

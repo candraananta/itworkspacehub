@@ -1,0 +1,74 @@
+<div x-show="currentTab === 'dashboard'" class="space-y-5 max-w-7xl mx-auto">
+  <!-- Hero CTA -->
+  <div class="card-blue rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-blue-lg">
+    <div>
+      <p class="text-royal-200 text-[10px] font-black uppercase tracking-widest mb-1">Operations Center</p>
+      <h2 class="text-white text-lg font-black leading-tight">Monitoring IT Enterprise</h2>
+      <p class="text-royal-300 text-xs mt-1 font-medium">Laporkan setiap insiden agar KPI Delivery tetap termonitor real-time.</p>
+    </div>
+    <button @click="openCreateModal()" class="btn btn-accent shrink-0">
+      <i class="fas fa-plus"></i><span>Buat Incident Log</span>
+    </button>
+  </div>
+
+  <!-- Stats grid -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="stat-card">
+      <div class="flex items-start justify-between mb-3">
+        <div class="stat-icon bg-royal-50 text-royal-600"><i class="fas fa-triangle-exclamation"></i></div>
+        <span class="badge badge-amber" x-text="incidents.filter(i=>i.Status==='Waiting').length + ' pending'"></span>
+      </div>
+      <p class="text-2xl font-black text-slate2-900" x-text="incidents.length"></p>
+      <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-0.5">Total Insiden</p>
+    </div>
+    <div class="stat-card">
+      <div class="flex items-start justify-between mb-3">
+        <div class="stat-icon bg-indigo-50 text-indigo-600"><i class="fas fa-server"></i></div>
+        <span class="badge badge-blue" x-text="racks.length + ' unit'"></span>
+      </div>
+      <p class="text-2xl font-black text-slate2-900" x-text="racks.length"></p>
+      <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-0.5">Server Racks</p>
+    </div>
+    <div class="stat-card">
+      <div class="flex items-start justify-between mb-3">
+        <div class="stat-icon bg-pink-50 text-pink-600"><i class="fas fa-chalkboard-user"></i></div>
+        <span class="badge" style="background:#FCE7F3;color:#9D174D;" x-text="kpiTrainings.length + ' sesi'"></span>
+      </div>
+      <p class="text-2xl font-black text-slate2-900" x-text="kpiTrainings.length"></p>
+      <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-0.5">Training Records</p>
+    </div>
+    <div class="stat-card">
+      <div class="flex items-start justify-between mb-3">
+        <div class="stat-icon bg-emerald-50 text-emerald-600"><i class="fas fa-book-open"></i></div>
+        <span class="badge badge-green" x-text="wiki.length + ' artikel'"></span>
+      </div>
+      <p class="text-2xl font-black text-slate2-900" x-text="wiki.length"></p>
+      <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-0.5">Knowledge Base</p>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <button @click="currentTab='incidents'" class="card p-4 text-left hover:shadow-card-md transition group">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="stat-icon bg-royal-50 text-royal-600 group-hover:bg-royal-600 group-hover:text-white transition"><i class="fas fa-triangle-exclamation text-sm"></i></div>
+        <span class="text-xs font-black text-slate2-700">Incident Reports</span>
+      </div>
+      <p class="text-[11px] text-slate2-400">Kelola laporan kendala jaringan & transaksi</p>
+    </button>
+    <button @click="currentTab='passwords'" class="card p-4 text-left hover:shadow-card-md transition group">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="stat-icon bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition"><i class="fas fa-vault text-sm"></i></div>
+        <span class="text-xs font-black text-slate2-700">Password Vault</span>
+      </div>
+      <p class="text-[11px] text-slate2-400">Kelola credential & akses sistem infrastruktur</p>
+    </button>
+    <button @click="currentTab='wiki'" class="card p-4 text-left hover:shadow-card-md transition group">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="stat-icon bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition"><i class="fas fa-book-open-reader text-sm"></i></div>
+        <span class="text-xs font-black text-slate2-700">Wiki / SOP</span>
+      </div>
+      <p class="text-[11px] text-slate2-400">Dokumentasi SOP & panduan troubleshooting</p>
+    </button>
+  </div>
+</div>

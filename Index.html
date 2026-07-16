@@ -190,6 +190,9 @@
           <i class="nav-icon fas fa-triangle-exclamation"></i><span>Incident Reports</span>
           <span x-show="incidents.filter(i=>i.Status==='Waiting').length" class="ml-auto badge badge-amber" style="font-size:9px;padding:2px 7px;" x-text="incidents.filter(i=>i.Status==='Waiting').length"></span>
         </button>
+        <button @click="currentTab='report'" :class="currentTab==='report'?'active':''" class="nav-item">
+          <i class="nav-icon fas fa-magnifying-glass-chart"></i><span>Report & Analisis</span>
+        </button>
         <div class="nav-divider"></div>
         <p class="nav-label">Infrastructure</p>
         <button @click="currentTab='racks'" :class="currentTab==='racks'?'active':''" class="nav-item"><i class="nav-icon fas fa-server"></i><span>Rack Management</span></button>
@@ -270,6 +273,7 @@
         <div x-show="!initialLoading" x-transition.opacity.duration.200ms class="tab-content">
           <?!= include('View_Dashboard') ?>
           <?!= include('View_Incidents') ?>
+          <?!= include('View_Report') ?>
           <?!= include('View_Infrastructure') ?>
           <?!= include('View_KPI') ?>
           <?!= include('View_Knowledge') ?>

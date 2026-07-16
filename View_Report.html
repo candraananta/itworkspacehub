@@ -1,0 +1,453 @@
+<div x-show="currentTab === 'report'" class="space-y-5">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Incident Report</h2>
+      <p class="page-subtitle">Analisis & rekapitulasi data insiden IT per periode, lokasi, dan kategori</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button @click="exportReportExcel()"
+        :disabled="reportLoading || !reportData"
+        class="btn btn-ghost border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-40">
+        <i class="fas fa-file-excel"></i><span class="hidden sm:inline">Export Excel</span>
+      </button>
+      <button @click="exportReportPdf()"
+        :disabled="reportLoading || !reportData"
+        class="btn btn-ghost border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40">
+        <i class="fas fa-file-pdf"></i><span class="hidden sm:inline">Export PDF</span>
+      </button>
+      <button @click="loadReport()"
+        :disabled="reportLoading"
+        class="btn btn-primary">
+        <i class="fas fa-magnifying-glass-chart" :class="reportLoading?'animate-pulse':''"></i>
+        <span>Generate Report</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div class="card p-5">
+    <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-4">Filter Laporan</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+      <!-- Tahun -->
+      <div>
+        <label class="form-label">Tahun</label>
+        <select x-model="reportFilter.year" class="form-input cursor-pointer">
+          <option value="">Semua Tahun</option>
+          <template x-for="y in reportAvailableYears" :key="y">
+            <option :value="y" x-text="y"></option>
+          </template>
+        </select>
+      </div>
+
+      <!-- Bulan -->
+      <div>
+        <label class="form-label">Bulan</label>
+        <select x-model="reportFilter.month" class="form-input cursor-pointer" :disabled="!reportFilter.year">
+          <option value="">Semua Bulan</option>
+          <option value="1">Januari</option><option value="2">Februari</option>
+          <option value="3">Maret</option><option value="4">April</option>
+          <option value="5">Mei</option><option value="6">Juni</option>
+          <option value="7">Juli</option><option value="8">Agustus</option>
+          <option value="9">September</option><option value="10">Oktober</option>
+          <option value="11">November</option><option value="12">Desember</option>
+        </select>
+      </div>
+
+      <!-- Lokasi -->
+      <div>
+        <label class="form-label">Lokasi</label>
+        <select x-model="reportFilter.location" class="form-input cursor-pointer">
+          <option value="">Semua Lokasi</option>
+          <template x-for="l in masterData.locations" :key="l.ID">
+            <option :value="l['Location Name']" x-text="l['Location Name']"></option>
+          </template>
+        </select>
+      </div>
+
+      <!-- Kategori -->
+      <div>
+        <label class="form-label">Kategori</label>
+        <select x-model="reportFilter.category" class="form-input cursor-pointer">
+          <option value="">Semua Kategori</option>
+          <template x-for="c in masterData.categories" :key="c.ID">
+            <option :value="c['Category Name']" x-text="c['Category Name']"></option>
+          </template>
+        </select>
+      </div>
+    </div>
+
+    <!-- Filter actions -->
+    <div class="flex items-center justify-between mt-4 pt-3 border-t border-slate2-100">
+      <div x-show="reportData" class="flex items-center gap-2 text-[10px] text-slate2-400">
+        <i class="fas fa-clock-rotate-left"></i>
+        <span>Dibuat: <span class="font-bold text-slate2-600" x-text="reportData?.generatedAt"></span></span>
+        <span class="mx-1">·</span>
+        <span x-text="reportData?.summary?.total + ' data insiden'"></span>
+      </div>
+      <div class="flex items-center gap-2 ml-auto">
+        <button x-show="reportFilter.year||reportFilter.month||reportFilter.location||reportFilter.category"
+          @click="reportFilter={year:'',month:'',location:'',category:''}"
+          class="btn btn-ghost btn-sm text-slate2-500">
+          <i class="fas fa-xmark"></i>Reset
+        </button>
+        <button @click="loadReport()" :disabled="reportLoading" class="btn btn-primary btn-sm">
+          <i class="fas fa-magnifying-glass-chart" :class="reportLoading?'animate-pulse':''"></i>
+          <span x-text="reportLoading?'Memuat...':'Terapkan Filter'"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Loading State ── -->
+  <div x-show="reportLoading" class="card p-12 flex flex-col items-center gap-4">
+    <div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>
+    <p class="text-xs font-bold text-slate2-400 uppercase tracking-widest">Menganalisis data insiden...</p>
+  </div>
+
+  <!-- ── Empty / No Data State ── -->
+  <div x-show="!reportLoading && !reportData" class="card">
+    <div class="empty-state py-16">
+      <div class="empty-icon w-16 h-16 text-2xl" style="background:#EBF4FF;color:#2B6CB0;">
+        <i class="fas fa-magnifying-glass-chart"></i>
+      </div>
+      <p class="text-sm font-black text-slate2-500">Belum ada laporan</p>
+      <p class="text-xs text-slate2-400 text-center max-w-xs">Pilih filter yang diinginkan lalu klik <strong>Generate Report</strong> untuk memulai analisis</p>
+      <button @click="loadReport()" class="btn btn-primary btn-sm mt-2">
+        <i class="fas fa-magnifying-glass-chart"></i>Generate Sekarang
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       REPORT CONTENT (tampil setelah generate)
+  ══════════════════════════════════════════════════════ -->
+  <template x-if="!reportLoading && reportData">
+    <div class="space-y-5">
+
+      <!-- ── Summary Cards ── -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total -->
+        <div class="stat-card">
+          <div class="flex items-start justify-between mb-3">
+            <div class="stat-icon bg-royal-50 text-royal-600"><i class="fas fa-clipboard-list"></i></div>
+            <span class="badge badge-blue text-[9px]">Total</span>
+          </div>
+          <p class="text-3xl font-black text-slate2-900" x-text="reportData.summary.total"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Total Insiden</p>
+        </div>
+        <!-- Waiting -->
+        <div class="stat-card">
+          <div class="flex items-start justify-between mb-3">
+            <div class="stat-icon bg-amber-50 text-amber-600"><i class="fas fa-hourglass-half"></i></div>
+            <span class="badge badge-amber text-[9px]">Pending</span>
+          </div>
+          <p class="text-3xl font-black text-slate2-900" x-text="reportData.summary.waiting"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Menunggu</p>
+        </div>
+        <!-- Closed -->
+        <div class="stat-card">
+          <div class="flex items-start justify-between mb-3">
+            <div class="stat-icon bg-emerald-50 text-emerald-600"><i class="fas fa-circle-check"></i></div>
+            <span class="badge badge-green text-[9px]">Selesai</span>
+          </div>
+          <p class="text-3xl font-black text-slate2-900" x-text="reportData.summary.closed"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Closed</p>
+        </div>
+        <!-- Resolve Rate -->
+        <div class="stat-card">
+          <div class="flex items-start justify-between mb-3">
+            <div class="stat-icon bg-royal-50 text-royal-600"><i class="fas fa-chart-pie"></i></div>
+            <span class="badge text-[9px]"
+              :class="reportData.summary.resolveRate>=80?'badge-green':reportData.summary.resolveRate>=50?'badge-amber':'badge-red'"
+              x-text="reportData.summary.resolveRate>=80?'Baik':reportData.summary.resolveRate>=50?'Cukup':'Perlu Perhatian'">
+            </span>
+          </div>
+          <p class="text-3xl font-black text-slate2-900" x-text="reportData.summary.resolveRate + '%'"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Resolve Rate</p>
+          <!-- Progress bar -->
+          <div class="mt-2 h-1.5 bg-slate2-100 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-700"
+              :style="`width:${reportData.summary.resolveRate}%;background:${reportData.summary.resolveRate>=80?'#059669':reportData.summary.resolveRate>=50?'#D97706':'#DC2626'}`">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Charts Row ── -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        <!-- Chart 1: Trend Bar Chart (spans 2 cols) -->
+        <div class="card p-5 lg:col-span-2">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <p class="text-xs font-black text-slate2-700">Tren Insiden per Bulan</p>
+              <p class="text-[10px] text-slate2-400 mt-0.5">Perbandingan total, waiting, dan closed</p>
+            </div>
+            <div class="flex items-center gap-3 text-[9px] font-bold">
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm" style="background:#2B6CB0;display:inline-block;"></span>Total</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm" style="background:#D97706;display:inline-block;"></span>Waiting</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm" style="background:#059669;display:inline-block;"></span>Closed</span>
+            </div>
+          </div>
+
+          <!-- Bar Chart SVG-style via divs -->
+          <div x-show="reportData.trendData.length > 0" class="overflow-x-auto">
+            <div class="flex items-end gap-2 min-w-0 pb-2" style="min-height:160px;"
+              :style="`min-width:${Math.max(reportData.trendData.length * 72, 100)}px`">
+              <template x-for="(item, idx) in reportData.trendData" :key="idx">
+                <div class="flex flex-col items-center gap-1 flex-1 min-w-[60px]">
+                  <!-- Bars -->
+                  <div class="flex items-end gap-0.5 w-full justify-center" style="height:120px;">
+                    <!-- Total bar -->
+                    <div class="rounded-t-md transition-all duration-500 w-4"
+                      :style="`height:${reportData.summary.total>0?Math.max((item.total/Math.max(...reportData.trendData.map(t=>t.total)))*110,4):4}px;background:#2B6CB0;`"
+                      :title="`Total: ${item.total}`">
+                    </div>
+                    <!-- Waiting bar -->
+                    <div class="rounded-t-md transition-all duration-500 w-4"
+                      :style="`height:${item.waiting>0?Math.max((item.waiting/Math.max(...reportData.trendData.map(t=>t.total)))*110,2):2}px;background:#D97706;`"
+                      :title="`Waiting: ${item.waiting}`">
+                    </div>
+                    <!-- Closed bar -->
+                    <div class="rounded-t-md transition-all duration-500 w-4"
+                      :style="`height:${item.closed>0?Math.max((item.closed/Math.max(...reportData.trendData.map(t=>t.total)))*110,2):2}px;background:#059669;`"
+                      :title="`Closed: ${item.closed}`">
+                    </div>
+                  </div>
+                  <!-- Value label -->
+                  <span class="text-[10px] font-black text-slate2-700" x-text="item.total"></span>
+                  <!-- Month label -->
+                  <span class="text-[9px] text-slate2-400 font-bold text-center leading-tight" x-text="item.label.split(' ')[0].substring(0,3) + ' ' + item.label.split(' ')[1]"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div x-show="reportData.trendData.length === 0" class="flex items-center justify-center h-32 text-slate2-300">
+            <div class="text-center"><i class="fas fa-chart-bar text-3xl mb-2 block"></i><p class="text-xs">Tidak ada data tren</p></div>
+          </div>
+        </div>
+
+        <!-- Chart 2: Status Donut -->
+        <div class="card p-5">
+          <p class="text-xs font-black text-slate2-700 mb-1">Distribusi Status</p>
+          <p class="text-[10px] text-slate2-400 mb-4">Perbandingan Waiting vs Closed</p>
+
+          <div x-show="reportData.summary.total > 0" class="flex flex-col items-center gap-4">
+            <!-- SVG Donut -->
+            <div class="relative" style="width:140px;height:140px;">
+              <svg viewBox="0 0 36 36" style="width:140px;height:140px;transform:rotate(-90deg);">
+                <!-- Background circle -->
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E2E8F0" stroke-width="3.5"></circle>
+                <!-- Closed arc (green) -->
+                <circle cx="18" cy="18" r="15.9" fill="none"
+                  stroke="#059669" stroke-width="3.5"
+                  stroke-dasharray="100 100"
+                  :stroke-dasharray="`${reportData.summary.resolveRate} ${100-reportData.summary.resolveRate}`"
+                  stroke-linecap="round">
+                </circle>
+              </svg>
+              <!-- Center text -->
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-2xl font-black text-slate2-900" x-text="reportData.summary.resolveRate+'%'"></span>
+                <span class="text-[9px] font-bold text-slate2-400 uppercase tracking-wide">Resolved</span>
+              </div>
+            </div>
+            <!-- Legend -->
+            <div class="w-full space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-sm" style="background:#059669;"></div>
+                  <span class="text-[11px] font-semibold text-slate2-600">Closed</span>
+                </div>
+                <span class="text-[11px] font-black text-slate2-800" x-text="reportData.summary.closed"></span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-sm" style="background:#D97706;"></div>
+                  <span class="text-[11px] font-semibold text-slate2-600">Waiting</span>
+                </div>
+                <span class="text-[11px] font-black text-slate2-800" x-text="reportData.summary.waiting"></span>
+              </div>
+            </div>
+          </div>
+
+          <div x-show="reportData.summary.total === 0" class="flex items-center justify-center h-32 text-slate2-300">
+            <div class="text-center"><i class="fas fa-chart-pie text-3xl mb-2 block"></i><p class="text-xs">Tidak ada data</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── By Location & Category Row ── -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        <!-- By Location -->
+        <div class="card p-5">
+          <p class="text-xs font-black text-slate2-700 mb-1">Insiden per Lokasi</p>
+          <p class="text-[10px] text-slate2-400 mb-4">Distribusi insiden berdasarkan area lokasi</p>
+
+          <div x-show="reportData.byLocation.length > 0" class="space-y-3">
+            <template x-for="(loc, idx) in reportData.byLocation" :key="idx">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-lg bg-royal-50 flex items-center justify-center shrink-0">
+                      <i class="fas fa-location-dot text-royal-600" style="font-size:9px;"></i>
+                    </div>
+                    <span class="text-[11px] font-bold text-slate2-700 truncate max-w-[140px]" x-text="loc.label"></span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="badge badge-amber text-[9px]" x-show="loc.waiting > 0" x-text="loc.waiting + ' W'"></span>
+                    <span class="text-[11px] font-black text-slate2-800" x-text="loc.total"></span>
+                  </div>
+                </div>
+                <!-- Progress bar -->
+                <div class="h-2 bg-slate2-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full flex">
+                    <!-- Closed portion -->
+                    <div class="h-full transition-all duration-700"
+                      style="background:#059669;"
+                      :style="`width:${reportData.summary.total>0?(loc.closed/reportData.summary.total)*100:0}%`">
+                    </div>
+                    <!-- Waiting portion -->
+                    <div class="h-full transition-all duration-700"
+                      style="background:#D97706;"
+                      :style="`width:${reportData.summary.total>0?(loc.waiting/reportData.summary.total)*100:0}%`">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <div x-show="reportData.byLocation.length === 0" class="flex items-center justify-center h-24 text-slate2-300">
+            <p class="text-xs">Tidak ada data lokasi</p>
+          </div>
+        </div>
+
+        <!-- By Category -->
+        <div class="card p-5">
+          <p class="text-xs font-black text-slate2-700 mb-1">Insiden per Kategori</p>
+          <p class="text-[10px] text-slate2-400 mb-4">Distribusi insiden berdasarkan jenis kategori</p>
+
+          <div x-show="reportData.byCategory.length > 0" class="space-y-3">
+            <template x-for="(cat, idx) in reportData.byCategory" :key="idx">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-lg bg-accent-100 flex items-center justify-center shrink-0">
+                      <i class="fas fa-tag text-accent-500" style="font-size:9px;"></i>
+                    </div>
+                    <span class="text-[11px] font-bold text-slate2-700 truncate max-w-[140px]" x-text="cat.label"></span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="badge badge-amber text-[9px]" x-show="cat.waiting > 0" x-text="cat.waiting + ' W'"></span>
+                    <span class="text-[11px] font-black text-slate2-800" x-text="cat.total"></span>
+                  </div>
+                </div>
+                <div class="h-2 bg-slate2-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full flex">
+                    <div class="h-full transition-all duration-700" style="background:#7C3AED;"
+                      :style="`width:${reportData.summary.total>0?(cat.closed/reportData.summary.total)*100:0}%`">
+                    </div>
+                    <div class="h-full transition-all duration-700" style="background:#D97706;"
+                      :style="`width:${reportData.summary.total>0?(cat.waiting/reportData.summary.total)*100:0}%`">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <div x-show="reportData.byCategory.length === 0" class="flex items-center justify-center h-24 text-slate2-300">
+            <p class="text-xs">Tidak ada data kategori</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Detail Table ── -->
+      <div class="card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate2-100 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-black text-slate2-700">Data Detail Insiden</p>
+            <p class="text-[10px] text-slate2-400 mt-0.5" x-text="reportData.tableRows.length + ' insiden ditemukan'"></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <!-- Search in table -->
+            <div class="search-wrap">
+              <i class="fas fa-search"></i>
+              <input type="text" x-model="reportTableSearch" placeholder="Cari dalam tabel..." class="form-input" style="max-width:200px;">
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID Log</th>
+                <th>Tanggal</th>
+                <th>Lokasi</th>
+                <th>Kategori</th>
+                <th>Deskripsi</th>
+                <th class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(row, idx) in filteredReportTable" :key="idx">
+                <tr>
+                  <td><span class="font-mono font-black text-royal-700 text-[11px]" x-text="row.id"></span></td>
+                  <td class="text-slate2-400 text-[11px]" x-text="row.tanggal"></td>
+                  <td>
+                    <span class="badge badge-blue text-[9px]" x-text="row.location"></span>
+                  </td>
+                  <td>
+                    <span class="badge badge-orange text-[9px]" x-text="row.category"></span>
+                  </td>
+                  <td>
+                    <p class="text-xs text-slate2-600 max-w-sm truncate" x-text="row.description"></p>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge text-[9px]"
+                      :class="row.status==='Closed'?'badge-green':'badge-amber'"
+                      x-text="row.status">
+                    </span>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="filteredReportTable.length === 0">
+                <td colspan="6">
+                  <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-inbox"></i></div>
+                    <p class="text-sm font-bold text-slate2-400">Tidak ada data ditemukan</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /report content -->
+  </template>
+
+  <!-- ── Export Loading Overlay (khusus report) ── -->
+  <div x-show="reportExportLoading" x-cloak
+    class="fixed inset-0 bg-royal-950/50 backdrop-blur-sm z-[80] flex items-center justify-center"
+    x-transition.opacity>
+    <div class="card p-6 flex flex-col items-center gap-4 shadow-card-lg max-w-xs text-center">
+      <div class="w-12 h-12 rounded-2xl bg-royal-50 flex items-center justify-center">
+        <i class="fas fa-file-export text-royal-600 text-xl animate-bounce"></i>
+      </div>
+      <div class="spinner"></div>
+      <div>
+        <p class="text-xs font-black text-slate2-700" x-text="reportExportMsg || 'Menyiapkan file...'"></p>
+        <p class="text-[10px] text-slate2-400 mt-1">Mohon tunggu, proses berjalan di server</p>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -22,7 +22,8 @@ function appState() {
       'm-items':      'Master Data · Item & Aset',
       'm-users':      'Master Data · Users',
       'licenses':     'Office 2024 · License Manager',
-      'checklists':   'Audit · Checklist Perangkat IT'
+      'checklists':   'Audit · Checklist Perangkat IT',
+      'report':       'Report & Analisis Insiden IT'
     },
 
     // ── Modal Visibility ──────────────────────────────────────
@@ -118,10 +119,39 @@ function appState() {
     deleteQueue: { sheet:'', id:'', name:'' },
     toasts: [],
 
+    // ── Report State ──────────────────────────────────────────
+    reportFilter:        { year:'', month:'', location:'', category:'' },
+    reportData:          null,
+    reportLoading:       false,
+    reportExportLoading: false,
+    reportExportMsg:     '',
+    reportTableSearch:   '',
+    reportAvailableYears: [],
+
     // ── Init ──────────────────────────────────────────────────
     init() {
       this.setTodayDate();
       this.fetchData();
+    },
+
+    // ── Report: populate available years setelah fetchData ────
+    _populateReportYears() {
+      const years = [...new Set(
+        this.incidents
+          .map(r => {
+            const v = r.Tanggal;
+            if (!v) return null;
+            const d = new Date(v);
+            return isNaN(d) ? null : d.getFullYear().toString();
+          })
+          .filter(Boolean)
+      )].sort().reverse();
+      this.reportAvailableYears = years;
+      // Auto-set tahun ke tahun sekarang jika ada
+      const thisYear = new Date().getFullYear().toString();
+      if (!this.reportFilter.year && years.includes(thisYear)) {
+        this.reportFilter.year = thisYear;
+      }
     },
 
     // ── Fetch All Data from GAS ───────────────────────────────
@@ -166,6 +196,7 @@ function appState() {
           } else {
             this.showToast('Error: ' + (res.message || 'Unknown error'), 'error');
           }
+          this._populateReportYears();
           this.initialLoading = false;
           this.loading        = false;
         })
@@ -828,7 +859,131 @@ function appState() {
     },
     get checklistTotalPages() {
       return Math.max(1, Math.ceil(this.filteredChecklists.length / this.checklistPerPage));
+    },
+
+    // ══════════════════════════════════════════════════════════
+    //  REPORT MODULE
+    // ══════════════════════════════════════════════════════════
+
+    // ── Load report dari backend ──────────────────────────────
+    loadReport() {
+      if (typeof google === 'undefined' || !google.script) {
+        this.showToast('Hanya tersedia di GAS WebApp.', 'error');
+        return;
+      }
+      this.reportLoading = true;
+      this.reportData    = null;
+      google.script.run
+        .withSuccessHandler(res => {
+          this.reportLoading = false;
+          if (res.success) {
+            this.reportData           = res;
+            this.reportAvailableYears = res.years || this.reportAvailableYears;
+            this.reportTableSearch    = '';
+          } else {
+            this.showToast('Gagal load report: ' + (res.message || ''), 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          this.reportLoading = false;
+          this.showToast('Error report: ' + err.message, 'error');
+        })
+        .getIncidentReport(this.reportFilter);
+    },
+
+    // ── Export ke Google Sheets ───────────────────────────────
+    exportReportExcel() {
+      if (!this.reportData) return this.showToast('Generate report dulu sebelum export.', 'error');
+      if (typeof google === 'undefined' || !google.script) return;
+      this.reportExportLoading = true;
+      this.reportExportMsg     = 'Membuat file Excel di Google Drive...';
+      google.script.run
+        .withSuccessHandler(res => {
+          this.reportExportLoading = false;
+          if (res.success) {
+            this.showToast('✅ ' + res.message, 'success');
+            // Buka Google Sheets di tab baru
+            setTimeout(() => window.open(res.url, '_blank'), 300);
+          } else {
+            this.showToast('Export gagal: ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          this.reportExportLoading = false;
+          this.showToast('Export error: ' + err.message, 'error');
+        })
+        .exportReportToSheets(this.reportFilter);
+    },
+
+    // ── Export ke PDF ─────────────────────────────────────────
+    exportReportPdf() {
+      if (!this.reportData) return this.showToast('Generate report dulu sebelum export.', 'error');
+      if (typeof google === 'undefined' || !google.script) return;
+      this.reportExportLoading = true;
+      this.reportExportMsg     = 'Membuat PDF di server Google...';
+      google.script.run
+        .withSuccessHandler(res => {
+          this.reportExportLoading = false;
+          if (res.success) {
+            if (res.base64) {
+              // Download PDF langsung dari base64
+              const byteChars  = atob(res.base64);
+              const byteArrays = [];
+              for (let i = 0; i < byteChars.length; i += 512) {
+                const slice = byteChars.slice(i, i + 512);
+                const bytes = new Array(slice.length);
+                for (let j = 0; j < slice.length; j++) bytes[j] = slice.charCodeAt(j);
+                byteArrays.push(new Uint8Array(bytes));
+              }
+              const blob = new Blob(byteArrays, { type: 'application/pdf' });
+              const url  = URL.createObjectURL(blob);
+              const a    = document.createElement('a');
+              a.href     = url;
+              a.download = res.fileName || 'Laporan_Insiden_IT.pdf';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              this.showToast('✅ PDF berhasil diunduh!', 'success');
+            }
+            // Jika ada URL Sheets atau Drive, tawarkan di toast
+            if (res.sheetsUrl) {
+              setTimeout(() => {
+                if (confirm('File juga tersimpan di Google Drive.\nBuka file Drive sekarang?')) {
+                  window.open(res.driveUrl || res.sheetsUrl, '_blank');
+                }
+              }, 800);
+            }
+            if (res.pdfFailed) {
+              this.showToast('PDF tidak tersedia, membuka Sheets...', 'error');
+              setTimeout(() => window.open(res.sheetsUrl, '_blank'), 500);
+            }
+          } else {
+            this.showToast('Export PDF gagal: ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          this.reportExportLoading = false;
+          this.showToast('Export PDF error: ' + err.message, 'error');
+        })
+        .exportReportToPdf(this.reportFilter);
+    },
+
+    // ── Computed: filter tabel detail dalam report ────────────
+    get filteredReportTable() {
+      if (!this.reportData || !this.reportData.tableRows) return [];
+      if (!this.reportTableSearch) return this.reportData.tableRows;
+      const q = this.reportTableSearch.toLowerCase().trim();
+      return this.reportData.tableRows.filter(r =>
+        String(r.id || '').toLowerCase().includes(q) ||
+        String(r.location || '').toLowerCase().includes(q) ||
+        String(r.category || '').toLowerCase().includes(q) ||
+        String(r.description || '').toLowerCase().includes(q) ||
+        String(r.status || '').toLowerCase().includes(q) ||
+        String(r.tanggal || '').toLowerCase().includes(q)
+      );
     }
+
   };
 }
 </script>

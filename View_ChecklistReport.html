@@ -1,9 +1,429 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
-</html>
+<div x-show="currentTab === 'checklist-report'" class="space-y-5">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Report Checklist Perangkat IT</h2>
+      <p class="page-subtitle">Rekap & analisis hasil audit pemeriksaan perangkat per site</p>
+    </div>
+    <button @click="loadChecklistReport()" :disabled="clReportLoading" class="btn btn-primary">
+      <i class="fas fa-magnifying-glass-chart" :class="clReportLoading?'animate-pulse':''"></i>
+      <span x-text="clReportLoading?'Memuat...':'Generate Report'"></span>
+    </button>
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div class="card p-5">
+    <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-4">Filter Laporan</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div>
+        <label class="form-label">Tahun</label>
+        <select x-model="clReportFilter.year" class="form-input cursor-pointer">
+          <option value="">Semua Tahun</option>
+          <template x-for="y in clReportYears" :key="y">
+            <option :value="y" x-text="y"></option>
+          </template>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Bulan</label>
+        <select x-model="clReportFilter.month" class="form-input cursor-pointer" :disabled="!clReportFilter.year">
+          <option value="">Semua Bulan</option>
+          <option value="1">Januari</option><option value="2">Februari</option>
+          <option value="3">Maret</option><option value="4">April</option>
+          <option value="5">Mei</option><option value="6">Juni</option>
+          <option value="7">Juli</option><option value="8">Agustus</option>
+          <option value="9">September</option><option value="10">Oktober</option>
+          <option value="11">November</option><option value="12">Desember</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Site / Lokasi</label>
+        <select x-model="clReportFilter.site" class="form-input cursor-pointer">
+          <option value="">Semua Site</option>
+          <template x-for="s in clReportSites" :key="s">
+            <option :value="s" x-text="s"></option>
+          </template>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Status Form</label>
+        <select x-model="clReportFilter.status" class="form-input cursor-pointer">
+          <option value="">Semua Status</option>
+          <option value="ACTIVE">Active</option>
+          <option value="DELETED">Deleted</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex items-center justify-between mt-4 pt-3 border-t border-slate2-100">
+      <div x-show="clReportData" class="text-[10px] text-slate2-400 flex items-center gap-2">
+        <i class="fas fa-clock-rotate-left"></i>
+        <span>Dibuat: <span class="font-bold text-slate2-600" x-text="clReportData?.generatedAt"></span></span>
+        <span class="mx-1">·</span>
+        <span x-text="clReportData?.summary?.totalForms + ' form checklist'"></span>
+      </div>
+      <div class="flex gap-2 ml-auto">
+        <button x-show="clReportFilter.year||clReportFilter.month||clReportFilter.site||clReportFilter.status"
+          @click="clReportFilter={year:'',month:'',location:'',site:'',status:''}"
+          class="btn btn-ghost btn-sm text-slate2-500">
+          <i class="fas fa-xmark"></i>Reset
+        </button>
+        <button @click="loadChecklistReport()" :disabled="clReportLoading" class="btn btn-primary btn-sm">
+          <i class="fas fa-magnifying-glass-chart"></i>
+          <span x-text="clReportLoading?'Memuat...':'Terapkan'"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Loading ── -->
+  <div x-show="clReportLoading" class="card p-12 flex flex-col items-center gap-4">
+    <div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>
+    <p class="text-xs font-bold text-slate2-400 uppercase tracking-widest">Menganalisis data checklist...</p>
+  </div>
+
+  <!-- ── Empty State ── -->
+  <div x-show="!clReportLoading && !clReportData" class="card">
+    <div class="empty-state py-16">
+      <div class="empty-icon w-16 h-16 text-2xl" style="background:#DCFCE7;color:#15803d;">
+        <i class="fas fa-clipboard-list"></i>
+      </div>
+      <p class="text-sm font-black text-slate2-500">Belum ada laporan</p>
+      <p class="text-xs text-slate2-400 text-center max-w-xs">Pilih filter lalu klik <strong>Generate Report</strong></p>
+      <button @click="loadChecklistReport()" class="btn btn-sm mt-2" style="background:#15803d;color:#fff;">
+        <i class="fas fa-magnifying-glass-chart"></i>Generate Sekarang
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       REPORT CONTENT
+  ══════════════════════════════════════════════════════ -->
+  <template x-if="!clReportLoading && clReportData">
+    <div class="space-y-5">
+
+      <!-- ── Summary Cards ── -->
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-royal-50 text-royal-600 mb-3"><i class="fas fa-clipboard-list"></i></div>
+          <p class="text-3xl font-black text-slate2-900" x-text="clReportData.summary.totalForms"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Total Form</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-slate2-50 text-slate2-500 mb-3"><i class="fas fa-list-check"></i></div>
+          <p class="text-3xl font-black text-slate2-900" x-text="clReportData.summary.totalParams"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Total Parameter</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-emerald-50 text-emerald-600 mb-3"><i class="fas fa-circle-check"></i></div>
+          <p class="text-3xl font-black text-slate2-900" x-text="clReportData.summary.totalBaik"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Kondisi Baik</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-red-50 text-red-500 mb-3"><i class="fas fa-circle-xmark"></i></div>
+          <p class="text-3xl font-black text-slate2-900" x-text="clReportData.summary.totalTidakBaik"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Tidak Baik</p>
+        </div>
+        <div class="stat-card col-span-2 lg:col-span-1">
+          <div class="stat-icon mb-3" :class="clReportData.summary.healthRate>=80?'bg-emerald-50 text-emerald-600':clReportData.summary.healthRate>=50?'bg-amber-50 text-amber-600':'bg-red-50 text-red-500'"><i class="fas fa-heart-pulse"></i></div>
+          <p class="text-3xl font-black text-slate2-900" x-text="clReportData.summary.healthRate+'%'"></p>
+          <p class="text-[10px] font-bold text-slate2-400 uppercase tracking-widest mt-1">Health Rate</p>
+          <div class="mt-2 h-1.5 bg-slate2-100 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-700"
+              :style="`width:${clReportData.summary.healthRate}%;background:${clReportData.summary.healthRate>=80?'#059669':clReportData.summary.healthRate>=50?'#D97706':'#DC2626'}`">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Charts Row ── -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        <!-- Health Rate per Site -->
+        <div class="card p-5">
+          <p class="text-xs font-black text-slate2-700 mb-1">Health Rate per Site</p>
+          <p class="text-[10px] text-slate2-400 mb-4">Persentase kondisi baik per lokasi</p>
+          <div x-show="clReportData.bySite.length > 0" class="space-y-3">
+            <template x-for="(s, idx) in clReportData.bySite" :key="idx">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style="background:#DCFCE7;">
+                      <i class="fas fa-location-dot text-[9px]" style="color:#15803d;"></i>
+                    </div>
+                    <span class="text-[11px] font-bold text-slate2-700 truncate max-w-[150px]" x-text="s.site"></span>
+                    <span class="badge badge-blue text-[9px]" x-text="s.forms + ' form'"></span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span x-show="s.tidakBaik > 0" class="badge badge-red text-[9px]" x-text="s.tidakBaik + ' issue'"></span>
+                    <span class="text-[11px] font-black" :class="s.healthRate>=80?'text-emerald-600':s.healthRate>=50?'text-amber-600':'text-red-500'" x-text="s.healthRate+'%'"></span>
+                  </div>
+                </div>
+                <div class="h-2 bg-slate2-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-700"
+                    :style="`width:${s.healthRate}%;background:${s.healthRate>=80?'#059669':s.healthRate>=50?'#D97706':'#DC2626'}`">
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div x-show="clReportData.bySite.length===0" class="flex items-center justify-center h-24 text-slate2-300">
+            <p class="text-xs">Tidak ada data site</p>
+          </div>
+        </div>
+
+        <!-- Health Rate per Kategori -->
+        <div class="card p-5">
+          <p class="text-xs font-black text-slate2-700 mb-1">Health Rate per Kategori</p>
+          <p class="text-[10px] text-slate2-400 mb-4">Kondisi per jenis pemeriksaan</p>
+          <div x-show="clReportData.byCategory.length > 0" class="space-y-3">
+            <template x-for="(c, idx) in clReportData.byCategory.slice(0,6)" :key="idx">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-[11px] font-bold text-slate2-700 truncate max-w-[200px]" x-text="c.cat"></span>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <span class="badge badge-green text-[9px]" x-text="c.baik"></span>
+                    <span x-show="c.tidakBaik>0" class="badge badge-red text-[9px]" x-text="c.tidakBaik"></span>
+                    <span class="text-[11px] font-black text-slate2-600" x-text="c.healthRate+'%'"></span>
+                  </div>
+                </div>
+                <div class="h-1.5 bg-slate2-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full" style="background:#15803d;transition:width .7s"
+                    :style="`width:${c.healthRate}%`"></div>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div x-show="clReportData.byCategory.length===0" class="flex items-center justify-center h-24 text-slate2-300">
+            <p class="text-xs">Tidak ada data kategori</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Issues Table ── -->
+      <div class="card overflow-hidden" x-show="clReportData.issues.length > 0">
+        <div class="px-5 py-4 border-b border-slate2-100 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-black text-slate2-700 flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center"><i class="fas fa-triangle-exclamation text-red-500 text-[9px]"></i></span>
+              Daftar Parameter Bermasalah
+            </p>
+            <p class="text-[10px] text-slate2-400 mt-0.5" x-text="clReportData.issues.length + ' parameter berstatus Tidak Baik'"></p>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr>
+              <th>Form Code</th><th>Site</th><th>Tanggal</th><th>Kategori</th>
+              <th>Parameter</th><th>Standar Limit</th><th>Potensi Resiko</th><th>Keterangan</th>
+            </tr></thead>
+            <tbody>
+              <template x-for="(issue, idx) in clReportData.issues" :key="idx">
+                <tr>
+                  <td><span class="font-mono font-black text-[11px]" style="color:#15803d;" x-text="issue.formCode"></span></td>
+                  <td><span class="badge badge-blue text-[9px]" x-text="issue.site"></span></td>
+                  <td class="text-slate2-400 text-[11px]" x-text="issue.tanggal"></td>
+                  <td class="text-[11px] font-bold text-slate2-600" x-text="issue.category"></td>
+                  <td class="text-[11px] font-bold text-slate2-800" x-text="issue.parameter"></td>
+                  <td class="text-[11px] text-slate2-500" x-text="issue.standarLimit"></td>
+                  <td class="text-[11px] text-red-600" x-text="issue.potensiResiko"></td>
+                  <td class="text-[11px] text-slate2-500" x-text="issue.keterangan||'—'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Form List Table + Export per form ── -->
+      <div class="card overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate2-100 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <p class="text-xs font-black text-slate2-700">Daftar Form Checklist</p>
+            <p class="text-[10px] text-slate2-400 mt-0.5" x-text="clReportData.formList.length + ' form ditemukan'"></p>
+          </div>
+          <!-- Batch export -->
+          <div class="flex items-center gap-2">
+            <span x-show="clSelectedForms.length > 0" class="badge badge-green text-[9px]" x-text="clSelectedForms.length + ' dipilih'"></span>
+            <button x-show="clSelectedForms.length > 0"
+              @click="openClSignModal('batch')"
+              class="btn btn-sm" style="background:#15803d;color:#fff;">
+              <i class="fas fa-file-pdf"></i>Export Terpilih
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr>
+              <th class="text-center" style="width:36px;">
+                <input type="checkbox" class="w-3.5 h-3.5 accent-royal-600"
+                  @change="clSelectedForms = $event.target.checked ? clReportData.formList.map(f=>f.id) : []">
+              </th>
+              <th>Form Code</th><th>Judul</th><th>Site</th><th>Tanggal</th>
+              <th class="text-center">Total</th><th class="text-center">Baik</th>
+              <th class="text-center">Tidak Baik</th><th class="text-center">Health</th>
+              <th class="text-right">Export</th>
+            </tr></thead>
+            <tbody>
+              <template x-for="f in clReportData.formList" :key="f.id">
+                <tr>
+                  <td class="text-center">
+                    <input type="checkbox" class="w-3.5 h-3.5 accent-royal-600"
+                      :value="f.id"
+                      :checked="clSelectedForms.includes(f.id)"
+                      @change="clSelectedForms.includes(f.id)?clSelectedForms=clSelectedForms.filter(x=>x!==f.id):clSelectedForms.push(f.id)">
+                  </td>
+                  <td><span class="font-mono font-black text-[11px]" style="color:#15803d;" x-text="f.formCode"></span></td>
+                  <td class="font-bold text-slate2-800 text-xs" x-text="f.judul"></td>
+                  <td><span class="badge badge-blue text-[9px]" x-text="f.site"></span></td>
+                  <td class="text-slate2-400 text-[11px]" x-text="f.tanggal"></td>
+                  <td class="text-center"><span class="badge badge-gray font-mono" x-text="f.totalParam"></span></td>
+                  <td class="text-center"><span class="badge badge-green text-[9px]" x-text="f.baik"></span></td>
+                  <td class="text-center">
+                    <span :class="f.tidakBaik>0?'badge-red':'badge-gray'" class="badge text-[9px]" x-text="f.tidakBaik"></span>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge text-[9px]"
+                      :class="f.healthRate>=80?'badge-green':f.healthRate>=50?'badge-amber':'badge-red'"
+                      x-text="f.healthRate+'%'"></span>
+                  </td>
+                  <td class="text-right">
+                    <div class="flex justify-end gap-1.5">
+                      <button @click="openClSignModal('excel', f.id)"
+                        class="btn btn-ghost btn-sm border border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                        <i class="fas fa-file-excel text-[10px]"></i>
+                      </button>
+                      <button @click="openClSignModal('pdf', f.id)"
+                        class="btn btn-ghost btn-sm border border-red-200 text-red-600 hover:bg-red-50">
+                        <i class="fas fa-file-pdf text-[10px]"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="clReportData.formList.length===0">
+                <td colspan="10"><div class="empty-state"><div class="empty-icon"><i class="fas fa-clipboard-list"></i></div><p class="text-sm font-bold text-slate2-400">Tidak ada form</p></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /report content -->
+  </template>
+
+  <!-- ══════════════════════════════════════════════════════
+       MODAL: Signature Config sebelum Export
+  ══════════════════════════════════════════════════════ -->
+  <div x-show="showClSignModal" x-cloak class="modal-backdrop" style="z-index:70;" x-transition.opacity>
+    <div class="modal-box max-w-lg" @click.outside="showClSignModal=false">
+      <div class="modal-header">
+        <div class="flex items-center gap-3">
+          <div class="modal-icon" style="background:#DCFCE7;color:#15803d;">
+            <i class="fas fa-file-signature"></i>
+          </div>
+          <div>
+            <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400">Konfigurasi Export</p>
+            <h3 class="text-xs font-black text-slate2-800">Pengaturan Kolom Tanda Tangan</h3>
+          </div>
+        </div>
+        <button @click="showClSignModal=false" class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body space-y-5">
+
+        <!-- IT Column -->
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-3 pb-1.5 border-b border-slate2-100 flex items-center gap-2">
+            <span class="w-4 h-4 rounded bg-royal-600 flex items-center justify-center"><i class="fas fa-desktop text-white" style="font-size:8px;"></i></span>
+            Kolom Kiri — IT Department
+          </p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="form-label">Nama IT</label>
+              <input type="text" x-model="clSignConfig.itName" placeholder="Nama staff IT..." class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Jabatan / Title</label>
+              <input type="text" x-model="clSignConfig.itTitle" placeholder="IT Staff / IT Engineer" class="form-input">
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Column -->
+        <div>
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 mb-3 pb-1.5 border-b border-slate2-100 flex items-center gap-2">
+            <span class="w-4 h-4 rounded bg-slate2-500 flex items-center justify-center"><i class="fas fa-user text-white" style="font-size:8px;"></i></span>
+            Kolom Kanan — Pihak Lain (Custom)
+          </p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="form-label">Nama</label>
+              <input type="text" x-model="clSignConfig.customName" placeholder="Kosongkan jika belum diketahui" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Jabatan / Title</label>
+              <input type="text" x-model="clSignConfig.customTitle" placeholder="Dept. Head / Manager / Supervisor" class="form-input">
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview signature block -->
+        <div class="rounded-xl border border-slate2-200 overflow-hidden">
+          <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 px-4 py-2 border-b border-slate2-100 bg-slate2-50">Preview Kolom Tanda Tangan</p>
+          <div class="grid grid-cols-2 divide-x divide-slate2-200">
+            <div class="p-4">
+              <p class="text-[10px] font-black text-royal-700 uppercase mb-2">IT Department</p>
+              <p class="text-[10px] text-slate2-600">Nama: <span class="font-bold" x-text="clSignConfig.itName||'IT Department'"></span></p>
+              <p class="text-[10px] text-slate2-600">Jabatan: <span class="font-bold" x-text="clSignConfig.itTitle||'IT Staff'"></span></p>
+              <div class="mt-3 h-10 border-b border-slate2-200 border-dashed"></div>
+              <p class="text-[9px] text-slate2-400 mt-1">Tanda Tangan & Tanggal</p>
+            </div>
+            <div class="p-4">
+              <p class="text-[10px] font-black text-slate2-700 uppercase mb-2" x-text="clSignConfig.customTitle||'Supervisor'"></p>
+              <p class="text-[10px] text-slate2-600">Nama: <span class="font-bold" x-text="clSignConfig.customName||'.......................'"></span></p>
+              <p class="text-[10px] text-slate2-600">Jabatan: <span class="font-bold" x-text="clSignConfig.customTitle||'Dept. Head / Supervisor'"></span></p>
+              <div class="mt-3 h-10 border-b border-slate2-200 border-dashed"></div>
+              <p class="text-[9px] text-slate2-400 mt-1">Tanda Tangan & Tanggal</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer gap-2">
+        <button @click="showClSignModal=false" class="btn btn-ghost">Batal</button>
+        <button x-show="clExportMode==='excel'"
+          @click="doExportChecklistExcel()"
+          class="btn border border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+          <i class="fas fa-file-excel"></i>Export Excel
+        </button>
+        <button x-show="clExportMode==='pdf'"
+          @click="doExportChecklistPdf()"
+          class="btn border border-red-300 text-red-600 hover:bg-red-50">
+          <i class="fas fa-file-pdf"></i>Export PDF
+        </button>
+        <button x-show="clExportMode==='batch'"
+          @click="doExportChecklistBatch()"
+          class="btn" style="background:#15803d;color:#fff;">
+          <i class="fas fa-file-pdf"></i>Export <span x-text="clSelectedForms.length + ' Form'"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Export Loading Overlay ── -->
+  <div x-show="clExportLoading" x-cloak
+    class="fixed inset-0 bg-royal-950/50 backdrop-blur-sm z-[85] flex items-center justify-center"
+    x-transition.opacity>
+    <div class="card p-6 flex flex-col items-center gap-4 shadow-card-lg max-w-xs text-center">
+      <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:#DCFCE7;">
+        <i class="fas fa-file-export text-xl animate-bounce" style="color:#15803d;"></i>
+      </div>
+      <div class="spinner"></div>
+      <div>
+        <p class="text-xs font-black text-slate2-700" x-text="clExportMsg || 'Menyiapkan file...'"></p>
+        <p class="text-[10px] text-slate2-400 mt-1">Proses berjalan di server GAS</p>
+      </div>
+    </div>
+  </div>
+
+</div>

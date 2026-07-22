@@ -1,115 +1,5 @@
 <script>
-function appState(
-  loadChecklistReport() {
-  if (typeof google === 'undefined' || !google.script) {
-    this.showToast('Hanya tersedia di GAS WebApp.', 'error');
-    return;
-  }
-  this.clReportLoading = true;
-  this.clReportData    = null;
-  google.script.run
-    .withSuccessHandler(res => {
-      this.clReportLoading = false;
-      if (res.success) {
-        this.clReportData  = res;
-        this.clReportYears = res.years || [];
-        this.clReportSites = res.sites || [];
-      } else {
-        this.showToast('Gagal load report: ' + (res.message || ''), 'error');
-      }
-    })
-    .withFailureHandler(err => {
-      this.clReportLoading = false;
-      this.showToast('Error: ' + err.message, 'error');
-    })
-    .getChecklistReport(this.clReportFilter);
-},
-
-openClSignModal(mode, formId = null) {
-  this.clExportMode   = mode;
-  this.clExportFormId = formId;
-  this.showClSignModal = true;
-},
-
-doExportChecklistExcel() {
-  this.showClSignModal  = false;
-  this.clExportLoading  = true;
-  this.clExportMsg      = 'Membuat file Excel...';
-  google.script.run
-    .withSuccessHandler(res => {
-      this.clExportLoading = false;
-      if (res.success) {
-        this.showToast('✅ ' + res.message, 'success');
-        setTimeout(() => window.open(res.url, '_blank'), 300);
-      } else {
-        this.showToast('Export gagal: ' + res.message, 'error');
-      }
-    })
-    .withFailureHandler(err => {
-      this.clExportLoading = false;
-      this.showToast('Error: ' + err.message, 'error');
-    })
-    .exportChecklistToSheets(this.clExportFormId, this.clSignConfig);
-},
-
-doExportChecklistPdf() {
-  this.showClSignModal  = false;
-  this.clExportLoading  = true;
-  this.clExportMsg      = 'Membuat PDF...';
-  google.script.run
-    .withSuccessHandler(res => {
-      this.clExportLoading = false;
-      if (res.success && res.base64) {
-        const byteChars  = atob(res.base64);
-        const byteArrays = [];
-        for (let i = 0; i < byteChars.length; i += 512) {
-          const slice = byteChars.slice(i, i + 512);
-          const bytes = new Array(slice.length);
-          for (let j = 0; j < slice.length; j++) bytes[j] = slice.charCodeAt(j);
-          byteArrays.push(new Uint8Array(bytes));
-        }
-        const blob = new Blob(byteArrays, { type: 'application/pdf' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href = url; a.download = res.fileName || 'Checklist.pdf';
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a); URL.revokeObjectURL(url);
-        this.showToast('✅ PDF berhasil diunduh!', 'success');
-      } else if (res.pdfFailed) {
-        this.showToast('PDF gagal, membuka Sheets...', 'error');
-        setTimeout(() => window.open(res.sheetsUrl, '_blank'), 500);
-      } else {
-        this.showToast('Export gagal: ' + (res.message || ''), 'error');
-      }
-    })
-    .withFailureHandler(err => {
-      this.clExportLoading = false;
-      this.showToast('Error: ' + err.message, 'error');
-    })
-    .exportChecklistToPdf(this.clExportFormId, this.clSignConfig);
-},
-
-doExportChecklistBatch() {
-  this.showClSignModal  = false;
-  this.clExportLoading  = true;
-  this.clExportMsg      = `Mengekspor ${this.clSelectedForms.length} form...`;
-  google.script.run
-    .withSuccessHandler(res => {
-      this.clExportLoading = false;
-      if (res.success) {
-        this.showToast('✅ ' + res.message, 'success');
-        setTimeout(() => window.open(res.url, '_blank'), 300);
-      } else {
-        this.showToast('Batch export gagal: ' + res.message, 'error');
-      }
-    })
-    .withFailureHandler(err => {
-      this.clExportLoading = false;
-      this.showToast('Error: ' + err.message, 'error');
-    })
-    .exportChecklistBatchToPdf(this.clSelectedForms, this.clSignConfig);
-},
-) {
+function appState() {
   return {
     // ── UI State ──────────────────────────────────────────────
     currentTab:     'dashboard',
@@ -118,23 +8,24 @@ doExportChecklistBatch() {
     submitLoading:  false,
     showDrawer:     false,
 
+    // BUG FIX: koma hilang sebelum 'checklist-report' di object headerTitles
     headerTitles: {
-      'dashboard':    'Operational Dashboard',
-      'incidents':    'Incident Reports',
-      'racks':        'Rack Management',
-      'vlans':        'VLAN Topology',
-      'kpi-projects': 'KPI · Quality Delivery',
-      'kpi-trainings':'KPI · Training Records',
-      'wiki':         'Wiki Knowledge Base',
-      'passwords':    'Password Vault',
-      'm-location':   'Master Data · Lokasi',
-      'm-category':   'Master Data · Kategori',
-      'm-items':      'Master Data · Item & Aset',
-      'm-users':      'Master Data · Users',
-      'licenses':     'Office 2024 · License Manager',
-      'checklists':   'Audit · Checklist Perangkat IT',
-      'report':       'Report & Analisis Insiden IT'
-      'checklist-report': 'Report Checklist Perangkat IT',
+      'dashboard':         'Operational Dashboard',
+      'incidents':         'Incident Reports',
+      'racks':             'Rack Management',
+      'vlans':             'VLAN Topology',
+      'kpi-projects':      'KPI · Quality Delivery',
+      'kpi-trainings':     'KPI · Training Records',
+      'wiki':              'Wiki Knowledge Base',
+      'passwords':         'Password Vault',
+      'm-location':        'Master Data · Lokasi',
+      'm-category':        'Master Data · Kategori',
+      'm-items':           'Master Data · Item & Aset',
+      'm-users':           'Master Data · Users',
+      'licenses':          'Office 2024 · License Manager',
+      'checklists':        'Audit · Checklist Perangkat IT',
+      'report':            'Report & Analisis Insiden IT',
+      'checklist-report':  'Report Checklist Perangkat IT'
     },
 
     // ── Modal Visibility ──────────────────────────────────────
@@ -239,7 +130,7 @@ doExportChecklistBatch() {
     reportTableSearch:   '',
     reportAvailableYears: [],
 
-    // Checklist Report State
+    // ── Checklist Report State ────────────────────────────────
     clReportData:    null,
     clReportLoading: false,
     clReportFilter:  { year:'', month:'', site:'', status:'' },
@@ -255,7 +146,6 @@ doExportChecklistBatch() {
       itName:'', itTitle:'IT Staff',
       customName:'', customTitle:'Dept. Head / Supervisor'
     },
-
 
     // ── Init ──────────────────────────────────────────────────
     init() {
@@ -276,7 +166,6 @@ doExportChecklistBatch() {
           .filter(Boolean)
       )].sort().reverse();
       this.reportAvailableYears = years;
-      // Auto-set tahun ke tahun sekarang jika ada
       const thisYear = new Date().getFullYear().toString();
       if (!this.reportFilter.year && years.includes(thisYear)) {
         this.reportFilter.year = thisYear;
@@ -287,7 +176,6 @@ doExportChecklistBatch() {
     fetchData() {
       this.loading = true;
 
-      // Timeout guard: jika GAS tidak merespons dalam 15 detik
       const timeoutId = setTimeout(() => {
         if (this.initialLoading) {
           this.initialLoading = false;
@@ -296,7 +184,6 @@ doExportChecklistBatch() {
         }
       }, 15000);
 
-      // Guard: google.script.run hanya tersedia di dalam GAS WebApp
       if (typeof google === 'undefined' || !google.script) {
         clearTimeout(timeoutId);
         this.initialLoading = false;
@@ -309,19 +196,19 @@ doExportChecklistBatch() {
         .withSuccessHandler(res => {
           clearTimeout(timeoutId);
           if (res.success) {
-            this.incidents        = res.incidents    || [];
+            this.incidents             = res.incidents    || [];
             this.masterData.locations  = res.locations   || [];
             this.masterData.categories = res.categories  || [];
-            this.vlans            = res.vlans        || [];
-            this.racks            = res.racks        || [];
-            this.kpiProjects      = res.kpiProjects  || [];
-            this.kpiTrainings     = res.kpiTrainings || [];
-            this.wiki             = res.wiki         || [];
-            this.masterItems      = res.masterItems  || [];
-            this.passwords        = res.passwords    || [];
-            this.masterUsers      = res.masterUsers  || [];
-            this.licenses         = res.licenses     || [];
-            this.checklists       = res.checklists   || [];
+            this.vlans                 = res.vlans        || [];
+            this.racks                 = res.racks        || [];
+            this.kpiProjects           = res.kpiProjects  || [];
+            this.kpiTrainings          = res.kpiTrainings || [];
+            this.wiki                  = res.wiki         || [];
+            this.masterItems           = res.masterItems  || [];
+            this.passwords             = res.passwords    || [];
+            this.masterUsers           = res.masterUsers  || [];
+            this.licenses              = res.licenses     || [];
+            this.checklists            = res.checklists   || [];
           } else {
             this.showToast('Error: ' + (res.message || 'Unknown error'), 'error');
           }
@@ -349,6 +236,121 @@ doExportChecklistBatch() {
     },
 
     // ══════════════════════════════════════════════════════════
+    //  CHECKLIST REPORT METHODS
+    //  BUG FIX: Sebelumnya ditulis di LUAR scope appState() — ini
+    //  menyebabkan seluruh Alpine.js gagal parse dan tidak bisa mount
+    // ══════════════════════════════════════════════════════════
+    loadChecklistReport() {
+      if (typeof google === 'undefined' || !google.script) {
+        this.showToast('Hanya tersedia di GAS WebApp.', 'error');
+        return;
+      }
+      this.clReportLoading = true;
+      this.clReportData    = null;
+      google.script.run
+        .withSuccessHandler(res => {
+          this.clReportLoading = false;
+          if (res.success) {
+            this.clReportData  = res;
+            this.clReportYears = res.years || [];
+            this.clReportSites = res.sites || [];
+          } else {
+            this.showToast('Gagal load report: ' + (res.message || ''), 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          this.clReportLoading = false;
+          this.showToast('Error: ' + err.message, 'error');
+        })
+        .getChecklistReport(this.clReportFilter);
+    },
+
+    openClSignModal(mode, formId) {
+      this.clExportMode    = mode;
+      this.clExportFormId  = formId || null;
+      this.showClSignModal = true;
+    },
+
+    doExportChecklistExcel() {
+      this.showClSignModal  = false;
+      this.clExportLoading  = true;
+      this.clExportMsg      = 'Membuat file Excel...';
+      google.script.run
+        .withSuccessHandler(res => {
+          this.clExportLoading = false;
+          if (res.success) {
+            this.showToast('✅ ' + res.message, 'success');
+            setTimeout(() => window.open(res.url, '_blank'), 300);
+          } else {
+            this.showToast('Export gagal: ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          this.clExportLoading = false;
+          this.showToast('Error: ' + err.message, 'error');
+        })
+        .exportChecklistToSheets(this.clExportFormId, this.clSignConfig);
+    },
+
+    doExportChecklistPdf() {
+      this.showClSignModal  = false;
+      this.clExportLoading  = true;
+      this.clExportMsg      = 'Membuat PDF...';
+      google.script.run
+        .withSuccessHandler(res => {
+          this.clExportLoading = false;
+          if (res.success && res.base64) {
+            const byteChars  = atob(res.base64);
+            const byteArrays = [];
+            for (let i = 0; i < byteChars.length; i += 512) {
+              const slice = byteChars.slice(i, i + 512);
+              const bytes = new Array(slice.length);
+              for (let j = 0; j < slice.length; j++) bytes[j] = slice.charCodeAt(j);
+              byteArrays.push(new Uint8Array(bytes));
+            }
+            const blob = new Blob(byteArrays, { type: 'application/pdf' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url; a.download = res.fileName || 'Checklist.pdf';
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            this.showToast('✅ PDF berhasil diunduh!', 'success');
+          } else if (res.pdfFailed) {
+            this.showToast('PDF gagal, membuka Sheets...', 'error');
+            setTimeout(() => window.open(res.sheetsUrl, '_blank'), 500);
+          } else {
+            this.showToast('Export gagal: ' + (res.message || ''), 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          this.clExportLoading = false;
+          this.showToast('Error: ' + err.message, 'error');
+        })
+        .exportChecklistToPdf(this.clExportFormId, this.clSignConfig);
+    },
+
+    doExportChecklistBatch() {
+      this.showClSignModal  = false;
+      this.clExportLoading  = true;
+      this.clExportMsg      = `Mengekspor ${this.clSelectedForms.length} form...`;
+      google.script.run
+        .withSuccessHandler(res => {
+          this.clExportLoading = false;
+          if (res.success) {
+            this.showToast('✅ ' + res.message, 'success');
+            setTimeout(() => window.open(res.url, '_blank'), 300);
+          } else {
+            this.showToast('Batch export gagal: ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(err => {
+          this.clExportLoading = false;
+          this.showToast('Error: ' + err.message, 'error');
+        })
+        .exportChecklistBatchToPdf(this.clSelectedForms, this.clSignConfig);
+    },
+
+    // ══════════════════════════════════════════════════════════
     //  MODAL OPENERS
     // ══════════════════════════════════════════════════════════
     openCreateModal() {
@@ -368,7 +370,8 @@ doExportChecklistBatch() {
       this.formClose = { id: item.ID, photoAfter: '' };
       this.showCloseModal = true;
     },
-    openMasterModal(type, item = null) {
+    openMasterModal(type, item) {
+      item = item || null;
       this.formMaster = {
         targetSheet: type,
         idField:     item ? item.ID : null,
@@ -376,7 +379,8 @@ doExportChecklistBatch() {
       };
       this.showMasterModal = true;
     },
-    openVlanModal(item = null) {
+    openVlanModal(item) {
+      item = item || null;
       if (item) {
         this.formVlan = {
           id: item.ID, vlanId: item['VLAN ID'], name: item['VLAN Name'],
@@ -388,7 +392,8 @@ doExportChecklistBatch() {
       }
       this.showVlanModal = true;
     },
-    openRackModal(item = null) {
+    openRackModal(item) {
+      item = item || null;
       if (item) {
         this.formRack = {
           id: item.ID, name: item['Rack Name'], location: item.Location,
@@ -405,7 +410,8 @@ doExportChecklistBatch() {
       this.formU = { name: e.name || '', type: e.type || 'Server', photo: e.photo || '' };
       this.showUModal = true;
     },
-    openKpiProjectModal(item = null) {
+    openKpiProjectModal(item) {
+      item = item || null;
       if (item) {
         this.formKpiProject = {
           id: item.ID, date: item.Tanggal, projectName: item['Project Name'],
@@ -416,7 +422,8 @@ doExportChecklistBatch() {
       }
       this.showKpiProjectModal = true;
     },
-    openKpiTrainingModal(item = null) {
+    openKpiTrainingModal(item) {
+      item = item || null;
       if (item) {
         this.formKpiTraining = {
           id: item.ID, date: item.Tanggal, title: item['Judul Training'],
@@ -428,7 +435,8 @@ doExportChecklistBatch() {
       }
       this.showKpiTrainingModal = true;
     },
-    openWikiModal(item = null) {
+    openWikiModal(item) {
+      item = item || null;
       if (item) {
         this.formWiki = {
           id: item.ID, title: item.Title, category: item.Category,
@@ -440,7 +448,8 @@ doExportChecklistBatch() {
       }
       this.showWikiModal = true;
     },
-    openItemModal(item = null) {
+    openItemModal(item) {
+      item = item || null;
       if (item) {
         this.formItem = {
           id: item.ID, itemName: item['Item Name'], category: item.Category || '',
@@ -452,7 +461,8 @@ doExportChecklistBatch() {
       }
       this.showItemModal = true;
     },
-    openPasswordModal(item = null) {
+    openPasswordModal(item) {
+      item = item || null;
       if (item) {
         this.formPassword = {
           id: item.ID, appName: item['App Name'], url: item.URL || '',
@@ -463,10 +473,11 @@ doExportChecklistBatch() {
       } else {
         this.formPassword = { id:null, appName:'', url:'', username:'', password:'', category:'', location:'', notes:'', isActive:true };
       }
-      this.showPwInForm    = false;
+      this.showPwInForm      = false;
       this.showPasswordModal = true;
     },
-    openLicenseModal(item = null) {
+    openLicenseModal(item) {
+      item = item || null;
       if (item) {
         this.formLicense = {
           id: item.ID, partNumber: item['Part Number'] || '',
@@ -486,11 +497,12 @@ doExportChecklistBatch() {
           hostname:'', user:'', itemId:'', laptopBrandType:'', akunAdmin:''
         };
       }
-      this.showProdKey     = false;
-      this.showUniqueKey   = false;
+      this.showProdKey      = false;
+      this.showUniqueKey    = false;
       this.showLicenseModal = true;
     },
-    openUserModal(item = null) {
+    openUserModal(item) {
+      item = item || null;
       if (item) {
         this.formUser = {
           id: item.ID, fullName: item['Full Name'],
@@ -505,10 +517,10 @@ doExportChecklistBatch() {
       this.deleteQueue = { sheet, id, name };
       this.showDeleteModal = true;
     },
-    viewAsset(type, url, title = 'Dokumen') {
+    viewAsset(type, url, title) {
       this.viewerType  = type;
       this.viewerUrl   = url;
-      this.viewerTitle = title;
+      this.viewerTitle = title || 'Dokumen';
       this.showViewer  = true;
     },
 
@@ -545,7 +557,8 @@ doExportChecklistBatch() {
     _emptyChecklistRow() {
       return { parameter:'', standarLimit:'', potensiResiko:'', frekuensi:'MINGGUAN', statusBaik:'', keterangan:'' };
     },
-    openChecklistModal(item = null) {
+    openChecklistModal(item) {
+      item = item || null;
       if (item) {
         this.formChecklist = {
           id: item.ID, formCode: item['Form Code'] || '',
@@ -757,7 +770,8 @@ doExportChecklistBatch() {
     // ══════════════════════════════════════════════════════════
     //  TOAST SYSTEM
     // ══════════════════════════════════════════════════════════
-    showToast(msg, type = 'success') {
+    showToast(msg, type) {
+      type = type || 'success';
       const id = Date.now();
       this.toasts.push({ id, msg, type });
       setTimeout(() => this.removeToast(id), 4500);
@@ -991,10 +1005,8 @@ doExportChecklistBatch() {
     },
 
     // ══════════════════════════════════════════════════════════
-    //  REPORT MODULE
+    //  REPORT MODULE (Incident)
     // ══════════════════════════════════════════════════════════
-
-    // ── Load report dari backend ──────────────────────────────
     loadReport() {
       if (typeof google === 'undefined' || !google.script) {
         this.showToast('Hanya tersedia di GAS WebApp.', 'error');
@@ -1020,7 +1032,6 @@ doExportChecklistBatch() {
         .getIncidentReport(this.reportFilter);
     },
 
-    // ── Export ke Google Sheets ───────────────────────────────
     exportReportExcel() {
       if (!this.reportData) return this.showToast('Generate report dulu sebelum export.', 'error');
       if (typeof google === 'undefined' || !google.script) return;
@@ -1031,7 +1042,6 @@ doExportChecklistBatch() {
           this.reportExportLoading = false;
           if (res.success) {
             this.showToast('✅ ' + res.message, 'success');
-            // Buka Google Sheets di tab baru
             setTimeout(() => window.open(res.url, '_blank'), 300);
           } else {
             this.showToast('Export gagal: ' + res.message, 'error');
@@ -1044,7 +1054,6 @@ doExportChecklistBatch() {
         .exportReportToSheets(this.reportFilter);
     },
 
-    // ── Export ke PDF ─────────────────────────────────────────
     exportReportPdf() {
       if (!this.reportData) return this.showToast('Generate report dulu sebelum export.', 'error');
       if (typeof google === 'undefined' || !google.script) return;
@@ -1055,7 +1064,6 @@ doExportChecklistBatch() {
           this.reportExportLoading = false;
           if (res.success) {
             if (res.base64) {
-              // Download PDF langsung dari base64
               const byteChars  = atob(res.base64);
               const byteArrays = [];
               for (let i = 0; i < byteChars.length; i += 512) {
@@ -1075,7 +1083,6 @@ doExportChecklistBatch() {
               URL.revokeObjectURL(url);
               this.showToast('✅ PDF berhasil diunduh!', 'success');
             }
-            // Jika ada URL Sheets atau Drive, tawarkan di toast
             if (res.sheetsUrl) {
               setTimeout(() => {
                 if (confirm('File juga tersimpan di Google Drive.\nBuka file Drive sekarang?')) {
@@ -1098,7 +1105,6 @@ doExportChecklistBatch() {
         .exportReportToPdf(this.reportFilter);
     },
 
-    // ── Computed: filter tabel detail dalam report ────────────
     get filteredReportTable() {
       if (!this.reportData || !this.reportData.tableRows) return [];
       if (!this.reportTableSearch) return this.reportData.tableRows;

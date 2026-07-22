@@ -193,9 +193,6 @@
         <button @click="currentTab='report'" :class="currentTab==='report'?'active':''" class="nav-item">
           <i class="nav-icon fas fa-magnifying-glass-chart"></i><span>Report & Analisis</span>
         </button>
-        <button @click="currentTab='checklist-report'" 
-        :class="currentTab==='checklist-report'?'active':''" 
-        class="nav-item">
 
         <div class="nav-divider"></div>
         <p class="nav-label">Infrastructure</p>
@@ -223,6 +220,10 @@
           <i class="nav-icon fas fa-clipboard-check"></i><span>Checklist Perangkat</span>
           <span x-show="checklists.length" class="ml-auto badge badge-green" style="font-size:9px;padding:2px 7px;" x-text="checklists.length"></span>
         </button>
+        <!-- BUG FIX: Nav item checklist-report yang sebelumnya tidak lengkap -->
+        <button @click="currentTab='checklist-report'" :class="currentTab==='checklist-report'?'active':''" class="nav-item">
+          <i class="nav-icon fas fa-clipboard-list"></i><span>Report Checklist</span>
+        </button>
         <div class="nav-divider"></div>
         <p class="nav-label">Master Data</p>
         <button @click="currentTab='m-location'" :class="currentTab==='m-location'?'active':''" class="nav-item"><i class="nav-icon fas fa-location-dot"></i><span>Locations</span></button>
@@ -249,7 +250,7 @@
           <button @click="showDrawer=true" class="md:hidden btn btn-ghost btn-icon text-slate2-500"><i class="fas fa-bars text-sm"></i></button>
           <div>
             <p class="text-[9px] font-black uppercase tracking-widest text-slate2-400 leading-none">IT Systems Hub</p>
-            <h1 class="text-xs font-bold text-slate2-800 tracking-wide leading-tight" x-text="headerTitles[currentTab]"></h1>
+            <h1 class="text-xs font-bold text-slate2-800 tracking-wide leading-tight" x-text="headerTitles[currentTab] || currentTab"></h1>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -316,6 +317,8 @@
         <button @click="currentTab='kpi-trainings';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-chalkboard-user"></i><span>Training Record</span></button>
         <button @click="currentTab='licenses';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-id-card"></i><span>Office Licenses</span></button>
         <button @click="currentTab='checklists';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-clipboard-check"></i><span>Checklist Perangkat</span></button>
+        <!-- BUG FIX: Tambah checklist-report di drawer mobile -->
+        <button @click="currentTab='checklist-report';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-clipboard-list"></i><span>Report Checklist</span></button>
         <div class="nav-divider"></div>
         <button @click="currentTab='m-location';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-location-dot"></i><span>Master Lokasi</span></button>
         <button @click="currentTab='m-category';showDrawer=false" class="nav-item w-full"><i class="nav-icon fas fa-tags"></i><span>Master Kategori</span></button>

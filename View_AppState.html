@@ -1,5 +1,115 @@
 <script>
-function appState() {
+function appState(
+  loadChecklistReport() {
+  if (typeof google === 'undefined' || !google.script) {
+    this.showToast('Hanya tersedia di GAS WebApp.', 'error');
+    return;
+  }
+  this.clReportLoading = true;
+  this.clReportData    = null;
+  google.script.run
+    .withSuccessHandler(res => {
+      this.clReportLoading = false;
+      if (res.success) {
+        this.clReportData  = res;
+        this.clReportYears = res.years || [];
+        this.clReportSites = res.sites || [];
+      } else {
+        this.showToast('Gagal load report: ' + (res.message || ''), 'error');
+      }
+    })
+    .withFailureHandler(err => {
+      this.clReportLoading = false;
+      this.showToast('Error: ' + err.message, 'error');
+    })
+    .getChecklistReport(this.clReportFilter);
+},
+
+openClSignModal(mode, formId = null) {
+  this.clExportMode   = mode;
+  this.clExportFormId = formId;
+  this.showClSignModal = true;
+},
+
+doExportChecklistExcel() {
+  this.showClSignModal  = false;
+  this.clExportLoading  = true;
+  this.clExportMsg      = 'Membuat file Excel...';
+  google.script.run
+    .withSuccessHandler(res => {
+      this.clExportLoading = false;
+      if (res.success) {
+        this.showToast('✅ ' + res.message, 'success');
+        setTimeout(() => window.open(res.url, '_blank'), 300);
+      } else {
+        this.showToast('Export gagal: ' + res.message, 'error');
+      }
+    })
+    .withFailureHandler(err => {
+      this.clExportLoading = false;
+      this.showToast('Error: ' + err.message, 'error');
+    })
+    .exportChecklistToSheets(this.clExportFormId, this.clSignConfig);
+},
+
+doExportChecklistPdf() {
+  this.showClSignModal  = false;
+  this.clExportLoading  = true;
+  this.clExportMsg      = 'Membuat PDF...';
+  google.script.run
+    .withSuccessHandler(res => {
+      this.clExportLoading = false;
+      if (res.success && res.base64) {
+        const byteChars  = atob(res.base64);
+        const byteArrays = [];
+        for (let i = 0; i < byteChars.length; i += 512) {
+          const slice = byteChars.slice(i, i + 512);
+          const bytes = new Array(slice.length);
+          for (let j = 0; j < slice.length; j++) bytes[j] = slice.charCodeAt(j);
+          byteArrays.push(new Uint8Array(bytes));
+        }
+        const blob = new Blob(byteArrays, { type: 'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = res.fileName || 'Checklist.pdf';
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(url);
+        this.showToast('✅ PDF berhasil diunduh!', 'success');
+      } else if (res.pdfFailed) {
+        this.showToast('PDF gagal, membuka Sheets...', 'error');
+        setTimeout(() => window.open(res.sheetsUrl, '_blank'), 500);
+      } else {
+        this.showToast('Export gagal: ' + (res.message || ''), 'error');
+      }
+    })
+    .withFailureHandler(err => {
+      this.clExportLoading = false;
+      this.showToast('Error: ' + err.message, 'error');
+    })
+    .exportChecklistToPdf(this.clExportFormId, this.clSignConfig);
+},
+
+doExportChecklistBatch() {
+  this.showClSignModal  = false;
+  this.clExportLoading  = true;
+  this.clExportMsg      = `Mengekspor ${this.clSelectedForms.length} form...`;
+  google.script.run
+    .withSuccessHandler(res => {
+      this.clExportLoading = false;
+      if (res.success) {
+        this.showToast('✅ ' + res.message, 'success');
+        setTimeout(() => window.open(res.url, '_blank'), 300);
+      } else {
+        this.showToast('Batch export gagal: ' + res.message, 'error');
+      }
+    })
+    .withFailureHandler(err => {
+      this.clExportLoading = false;
+      this.showToast('Error: ' + err.message, 'error');
+    })
+    .exportChecklistBatchToPdf(this.clSelectedForms, this.clSignConfig);
+},
+) {
   return {
     // ── UI State ──────────────────────────────────────────────
     currentTab:     'dashboard',
@@ -24,6 +134,7 @@ function appState() {
       'licenses':     'Office 2024 · License Manager',
       'checklists':   'Audit · Checklist Perangkat IT',
       'report':       'Report & Analisis Insiden IT'
+      'checklist-report': 'Report Checklist Perangkat IT',
     },
 
     // ── Modal Visibility ──────────────────────────────────────
@@ -127,6 +238,24 @@ function appState() {
     reportExportMsg:     '',
     reportTableSearch:   '',
     reportAvailableYears: [],
+
+    // Checklist Report State
+    clReportData:    null,
+    clReportLoading: false,
+    clReportFilter:  { year:'', month:'', site:'', status:'' },
+    clReportYears:   [],
+    clReportSites:   [],
+    clSelectedForms: [],
+    showClSignModal:  false,
+    clExportMode:     '',
+    clExportLoading:  false,
+    clExportMsg:      '',
+    clExportFormId:   null,
+    clSignConfig: {
+      itName:'', itTitle:'IT Staff',
+      customName:'', customTitle:'Dept. Head / Supervisor'
+    },
+
 
     // ── Init ──────────────────────────────────────────────────
     init() {

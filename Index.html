@@ -193,6 +193,10 @@
         <button @click="currentTab='report'" :class="currentTab==='report'?'active':''" class="nav-item">
           <i class="nav-icon fas fa-magnifying-glass-chart"></i><span>Report & Analisis</span>
         </button>
+        <button @click="currentTab='checklist-report'" 
+        :class="currentTab==='checklist-report'?'active':''" 
+        class="nav-item">
+
         <div class="nav-divider"></div>
         <p class="nav-label">Infrastructure</p>
         <button @click="currentTab='racks'" :class="currentTab==='racks'?'active':''" class="nav-item"><i class="nav-icon fas fa-server"></i><span>Rack Management</span></button>
@@ -280,6 +284,7 @@
           <?!= include('View_Security') ?>
           <?!= include('View_Licenses') ?>
           <?!= include('View_Checklists') ?>
+          <?!= include('View_ChecklistReport') ?>
           <?!= include('View_Master') ?>
         </div>
 
